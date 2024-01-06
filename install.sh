@@ -327,6 +327,7 @@ verify_pkgs() {
     fi
   done
 
+  unset -v pkg
   unset -v pkgs
 
   return 0
