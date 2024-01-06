@@ -426,7 +426,9 @@ install() {
 
   verify_disk "${disk}" || return $?
 
-  if ! partition_and_mount "${disk}"; then
+  if print_prompt "Parition and mount the disk \"${disk}\"" "y" \
+    && ! partition_and_mount "${disk}";
+  then
     print_error "Unable to partition and mount the disk"
     return 1
   fi
@@ -436,7 +438,9 @@ install() {
 
   # Note: if a new hardware type (not in the git project),
   # then add the hardware.nix file as a new machine type
-  if [ ! -f "/mnt/etc/nixos/configuration.nix" ]; then
+  if [ ! -f "/mnt/etc/nixos/configuration.nix" ] \
+    && print_prompt "Generate a default configuration" "n";
+  then
     print_info "Generating basic configuration in '/mnt/etc/nixos'"
     scmd nixos-generate-config --root /mnt
   fi
@@ -458,7 +462,6 @@ install() {
   sleep 1
 
   export NIXOS_CONFIG="${NIXOS_CONFIG_DIR}/hosts/${name}/default.nix"
-  export NIX_PATH="nixos-config=${NIXOS_CONFIG}"
 
   if [ ! -f "${NIXOS_CONFIG}" ]; then
     print_error "Unable to find config file: ${NIXOS_CONFIG}"
@@ -467,7 +470,7 @@ install() {
 
   if print_prompt "Would you like to install \"${name}\"" "y"; then
     print_info "Installing NixOS using the host name: ${name}"
-    if scmd nixos-install --no-root-passwd; then
+    if scmd nixos-install --no-root-passwd -I "nixos-config=${NIXOS_CONFIG}"; then
       print_success "Successfully installed NixOS using: ${NIXOS_CONFIG}"
     else
       return $?
