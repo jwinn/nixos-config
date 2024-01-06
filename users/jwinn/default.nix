@@ -14,10 +14,11 @@
       "docker"
       "networkmanager"
     ];
+
     packages = with pkgs; [
       jq
       wget
-    ]
+    ];
 
     openssh.authorizedKeys.keyFiles = [
       ./ssh_ed25519.pub

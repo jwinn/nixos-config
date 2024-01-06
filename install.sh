@@ -456,7 +456,7 @@ install() {
     scmd git clone ${GIT_REPO} ${NIXOS_CONFIG_DIR}
   else
     print_info "Updating repo for: ${NIXOS_CONFIG_DIR}"
-    cd ${NIXOS_CONFIG_DIR} && scmd git pull && cd $-
+    cd ${NIXOS_CONFIG_DIR} && scmd git pull && cd -
   fi
 
   sleep 1
