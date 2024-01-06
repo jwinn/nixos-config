@@ -439,7 +439,7 @@ install() {
   # Note: if a new hardware type (not in the git project),
   # then add the hardware.nix file as a new machine type
   if [ ! -f "/mnt/etc/nixos/configuration.nix" ] \
-    && print_prompt "Generate a default configuration" "n";
+    && print_prompt "Generate a default configuration" "y";
   then
     print_info "Generating basic configuration in '/mnt/etc/nixos'"
     scmd nixos-generate-config --root /mnt

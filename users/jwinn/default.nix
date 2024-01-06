@@ -19,8 +19,8 @@
       wget
     ]
 
-    openssh.authorizedKeys.keys = [
-      (lib.strings.fileContents ./ssh_ed25519.pub)
+    openssh.authorizedKeys.keyFiles = [
+      ./ssh_ed25519.pub
     ];
   };
 
