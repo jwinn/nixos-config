@@ -20,7 +20,7 @@
   i18n.defaultLocale = "en_US.UTF-8";
 
   # Nix command
-  nix = {
+  nix = rec {
     settings = {
       experimental-features = [ "nix-command" "flakes" "repl-flake" ];
     };
