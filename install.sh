@@ -318,6 +318,20 @@ verify_disk() {
   return 0
 }
 
+verify_pkgs() {
+  pkgs="git jq"
+  for pkg in ${pkgs}; do
+    if ! has_command ${pkg}; then
+      print_info "${pkg} not found, installing..."
+      scmd nix-env --install --prebuilt-only --attr nixos.${pkg} || return $?
+    fi
+  done
+
+  unset -v pkgs
+
+  return 0
+}
+
 # TODO: change naive error checking
 partition_and_mount() {
   disk="${1}"
@@ -326,8 +340,7 @@ partition_and_mount() {
   if scmd umount -R /mnt/boot 2>/dev/null || true \
     && scmd umount -R /mnt 2>/dev/null || true \
     && scmd umount /dev/${disk}* 2>/dev/null || true \
-    ; then
-
+  ; then
     print_success "Successfully unmounted disk: ${disk}"
   else
     return $?
@@ -342,7 +355,6 @@ partition_and_mount() {
     && scmd parted /dev/${disk} -- mkpart ESP fat32 1MB 512MB \
     && scmd parted /dev/${disk} -- set 3 esp on \
   ; then
-
     print_success "Successfully partitioned disk: ${disk}"
   else
     return $?
@@ -351,10 +363,10 @@ partition_and_mount() {
   sleep 1
 
   print_info "Formatting partitions for: ${disk}"
-  disk_json="lsblk -o +partlabel,parttypename --json | jq -c --arg disk \"${disk}\" '.blockdevices[] | select(.name | ascii_downcase == \$disk)'"
-  nixos=$(nix-shell -p jq --run "${disk_json} | jq -r '.children[] | select(.parttypename == \"Linux filesystem\") | .name'")
-  swap=$(nix-shell -p jq --run "${disk_json} | jq -r '.children[] | select(.parttypename == \"Linux swap\") | .name'")
-  boot=$(nix-shell -p jq --run "${disk_json} | jq -r '.children[] | select(.partlabel == \"ESP\") | .name'")
+  disk_json=$(lsblk -o +partlabel,parttypename --json | jq -c --arg disk "${disk}" '.blockdevices[] | select(.name | ascii_downcase == $disk)')
+  nixos=$(echo "${disk_json}" | jq -r '.children[] | select(.parttypename == "Linux filesystem") | .name')
+  swap=$(echo "${disk_json}" | jq -r '.children[] | select(.parttypename == "Linux swap") | .name')
+  boot=$(echo "${disk_json}" | jq -r '.children[] | select(.partlabel == "ESP") | .name')
 
   unset -v disk_json
 
@@ -369,6 +381,7 @@ partition_and_mount() {
   fi
 
   unset -v nixos
+  unset -v swap
   unset -v boot
 
   sleep 1
@@ -377,7 +390,7 @@ partition_and_mount() {
   if scmd mount /dev/disk/by-label/nixos /mnt \
     && scmd mkdir -p /mnt/boot \
     && scmd mount /dev/disk/by-label/boot /mnt/boot \
-    && scmd swapon /dev/${swap} \
+    && scmd swapon /dev/disk/by-label/swap \
   ; then
 
     print_success "Successfully mounted disk: ${disk}"
@@ -388,7 +401,6 @@ partition_and_mount() {
   print_info "${disk} mounted to: '/mnt' and '/mnt/boot'"
 
   unset -v disk
-  unset -v swap
 
   return 0
 }
@@ -426,6 +438,7 @@ install() {
 
   verify_disk "${disk}" || return $?
 
+  # TODO: determine if already partitioned, instead of prompting
   if print_prompt "Parition and mount the disk \"${disk}\"" "y" \
     && ! partition_and_mount "${disk}";
   then
@@ -436,21 +449,12 @@ install() {
   sleep 1
   unset -v disk
 
-  # Note: if a new hardware type (not in the git project),
-  # then add the hardware.nix file as a new machine type
-  if [ ! -f "/mnt/etc/nixos/configuration.nix" ] \
-    && print_prompt "Generate a default configuration" "y";
-  then
-    print_info "Generating basic configuration in '/mnt/etc/nixos'"
-    scmd nixos-generate-config --root /mnt
-  fi
-
+  # use git to get latest repo
   if ! has_command git; then
     print_info "<git> not found installing..."
     scmd nix-env --install --prebuilt-only --attr nixos.git || return $?
   fi
 
-  # use git to get latest repo
   if [ ! -d "${NIXOS_CONFIG_DIR}" ]; then
     print_info "Cloning ${GIT_REPO} into: ${NIXOS_CONFIG_DIR}"
     scmd git clone ${GIT_REPO} ${NIXOS_CONFIG_DIR}
@@ -460,6 +464,13 @@ install() {
   fi
 
   sleep 1
+
+  # Note: if a new hardware type (not in the git project),
+  # then add the hardware.nix file as a new machine type
+  if [ ! -f "/mnt/etc/nixos/configuration.nix" ]; then
+    print_info "Generating basic configuration in '/mnt/etc/nixos'"
+    scmd nixos-generate-config --root /mnt
+  fi
 
   export NIXOS_CONFIG="${NIXOS_CONFIG_DIR}/hosts/${name}/default.nix"
 
@@ -492,6 +503,7 @@ install() {
 
 main() {
   verify || exit $?
+  verify_pkgs || exit $?
 
   # Opt into the experimental nix 'flakes' and 'nix-command' features
   export NIX_CONFIG="${NIX_CONFIG:-"experimental-features = nix-command flakes repl-flake"}"
