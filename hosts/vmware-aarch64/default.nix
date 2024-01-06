@@ -31,6 +31,17 @@
       # Every week, delete any generation older than 3 days
       options = "--delete-older-than 3d";
     };
+
+    #nixPath = lib.mkDefault 
+    nixPath = ''
+  if nix.channel.enable
+  then [
+    "nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos"
+    "nixos-config=/etc/nixos/config/hosts/${config.networking.hostName}/.nix"
+    "/nix/var/nix/profiles/per-user/root/channels"
+  ]
+  else [];
+''
   };
 
   # SSH server

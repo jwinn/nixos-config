@@ -2,15 +2,17 @@
 
 {
   users.users.jwinn = {
+    uid = 1000;
+    description = "Jon Winn";
     isNormalUser = true;
+    createHome = true;
     initialPassword = "changeme";
     shell = pkgs.zsh;
+    group = "users";
     extraGroups = [
       "wheel"
-      "audio"
       "docker"
       "networkmanager"
-      "video"
     ];
     packages = with pkgs; [
       jq

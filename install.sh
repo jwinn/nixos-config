@@ -457,8 +457,8 @@ install() {
 
   sleep 1
 
-  export NIXOS_CONFIG="${NIXOS_CONFIG_DIR}/hosts/${name}/default.nix"
-  #export NIX_PATH="nixos-config=${NIXOS_CONFIG_DIR}/hosts/${name}/default.nix"
+  #export NIXOS_CONFIG="${NIXOS_CONFIG_DIR}/hosts/${name}/default.nix"
+  export NIX_PATH="nixos-config=${NIXOS_CONFIG_DIR}/hosts/${name}/default.nix"
 
   if [ ! -f "${NIXOS_CONFIG}" ]; then
     print_error "Unable to find config file: ${NIXOS_CONFIG}"
