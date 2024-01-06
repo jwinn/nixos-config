@@ -32,9 +32,9 @@
       options = "--delete-older-than 3d";
     };
 
-    nixPath = if config.nix.channel.enable then [
+    nixPath = if config.nix.channel.enable then config.nix.nixPath // [
       #"nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos"
-      "nixos-config=/etc/nixos/config/hosts/${config.networking.hostName}/.nix"
+      "nixos-config=/etc/nixos/config/hosts/${config.networking.hostName}/default.nix"
       #"/nix/var/nix/profiles/per-user/root/channels"
     ] else [];
   };
