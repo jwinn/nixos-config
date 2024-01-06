@@ -20,7 +20,7 @@
   i18n.defaultLocale = "en_US.UTF-8";
 
   # Nix command
-  nix = rec {
+  nix = {
     settings = {
       experimental-features = [ "nix-command" "flakes" "repl-flake" ];
     };
@@ -32,7 +32,7 @@
       options = "--delete-older-than 3d";
     };
 
-    nixPath = if nix.channel.enable then [
+    nixPath = if config.nix.channel.enable then [
       #"nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos"
       "nixos-config=/etc/nixos/config/hosts/${config.networking.hostName}/.nix"
       #"/nix/var/nix/profiles/per-user/root/channels"
