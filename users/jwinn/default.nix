@@ -1,4 +1,5 @@
 { lib, pkgs, ... }:
+
 {
   users.users.jwinn = {
     isNormalUser = true;
@@ -23,6 +24,7 @@
 
   programs = {
     git.enable = true;
+    neovim.enable = true;
     # Enable the zsh shell
     zsh.enable = true;
   };
