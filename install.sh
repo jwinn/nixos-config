@@ -488,14 +488,8 @@ install() {
       return $?
     fi
 
-    print_info "Changing ownership and permissions for: ${NIXOS_CONFIG_DIR}"
-    if scmd chown -R 1000:wheel "${NIXOS_CONFIG_DIR}" \
-      && scmd chmod -R g+w "${NIXOS_CONFIG_DIR}";
-    then
-      print_success "Ownership to 1000:wheel set and permissions updated" 
-    else
-      print_error "Unable to change ownership to 1000:wheel and add g+w permissions"
-    fi
+    print_info "Changing ownership to 1000:wheel for: ${NIXOS_CONFIG_DIR}"
+    scmd chown -R 1000:wheel "${NIXOS_CONFIG_DIR}"
   fi
 
   #scmd umount -R /mnt || true
