@@ -53,6 +53,27 @@
     };
   };
 
+  # system-wide programs
+  environment.systemPackages = with pkgs; [
+    vim
+    wget
+  ];
+
+  programs = {
+    git.enable = lib.mkDefault true;
+    gnupg.agent = {
+      enable = lib.mkDefault true;
+      enableSSHSupport = lib.mkDefault true;
+    };
+    mosh.enable = lib.mkDefault true;
+    mtr.enable = lib.mkDefault true;
+    tmux.enable = lib.mkDefault true;
+    vim.defaultEditor = lib.mkDefault true;
+  };
+
+  # VMware guest tools
+  virtualisation.vmware.guest.enable = true;
+
   # This option defines the first version of NixOS you have installed on this particular machine,
   # and is used to maintain compatibility with application data (e.g. databases) created on older NixOS versions.
   #

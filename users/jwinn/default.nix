@@ -17,7 +17,7 @@
 
     packages = with pkgs; [
       jq
-      wget
+      mosh
     ];
 
     openssh.authorizedKeys.keyFiles = [
@@ -27,7 +27,16 @@
 
   programs = {
     git.enable = true;
-    neovim.enable = true;
+    neovim = {
+      enable = true;
+      defaultEditor = true;
+      #viAlias = true;
+      #vimAlias = true;
+      #withNodeJs = true;
+      #withPython3 = true;
+      #withRuby = true;
+    };
+    tmux.enable = true;
     # Enable the zsh shell
     zsh.enable = true;
   };
