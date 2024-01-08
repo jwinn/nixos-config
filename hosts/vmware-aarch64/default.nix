@@ -60,14 +60,14 @@
   ];
 
   programs = {
-    git.enable = lib.mkDefault true;
+    git.enable = true;
     gnupg.agent = {
-      enable = lib.mkDefault true;
-      enableSSHSupport = lib.mkDefault true;
+      enable = true;
+      enableSSHSupport = true;
     };
-    mosh.enable = lib.mkDefault true;
-    mtr.enable = lib.mkDefault true;
-    tmux.enable = lib.mkDefault true;
+    mosh.enable = true;
+    mtr.enable = true;
+    tmux.enable = true;
     vim.defaultEditor = lib.mkDefault true;
   };
 
