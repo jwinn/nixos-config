@@ -2,7 +2,6 @@
 
 {
   users.users.jwinn = {
-    uid = 1000;
     description = "Jon Winn";
     isNormalUser = true;
     createHome = true;

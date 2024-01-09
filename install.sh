@@ -11,6 +11,7 @@ BOLD="$(tput bold 2>/dev/null || printf '\033[1m')"
 
 RED="$(tput setaf 1 2>/dev/null || printf '\033[38;5;1m')"
 GREEN="$(tput setaf 2 2>/dev/null || printf '\033[38;5;2m')"
+YELLOW="$(tput setaf 3 2>/dev/null || printf '\033[38;5;3m')"
 MAGENTA="$(tput setaf 5 2>/dev/null || printf '\033[38;5;5m')"
 CYAN="$(tput setaf 6 2>/dev/null || printf '\033[38;5;6m')"
 
@@ -22,6 +23,12 @@ CYAN="$(tput setaf 6 2>/dev/null || printf '\033[38;5;6m')"
 # Description: outputs a colorized, where applicable, info message
 print_info() {
   printf "%s\n" "${CYAN}[*]${NO_COLOR} $*"
+}
+
+# Usage: print_warn <message>
+# Description: outputs a colorized, where applicable, warning message
+print_warn() {
+  printf "%s\n" "${YELLOW}[!] $*${NO_COLOR}"
 }
 
 # Usage: print_error <message>
@@ -116,6 +123,16 @@ scmd() {
     return 0
   else
     return $?
+  fi
+}
+
+# Usage: str_contains <haystack> <needle>
+# Description: determins if the needle is in the haystack string
+str_contains() {
+  if [ "${1#*$2}" != "${1}" ]; then
+    return 0
+  else
+    return 1
   fi
 }
 
@@ -447,24 +464,22 @@ install() {
     return 1
   fi
 
-  sleep 1
   unset -v disk
 
-  # use git to get latest repo
-  if ! has_command git; then
-    print_info "<git> not found installing..."
-    scmd nix-env --install --prebuilt-only --attr nixos.git || return $?
-  fi
+  # Change the default configuration file location
+  NIXOS_CONFIG_DIR="/mnt/etc/nixos/config"
 
-  if [ ! -d "${NIXOS_CONFIG_DIR}" ]; then
-    print_info "Cloning ${GIT_REPO} into: ${NIXOS_CONFIG_DIR}"
-    scmd git clone ${GIT_REPO} ${NIXOS_CONFIG_DIR}
-  else
-    print_info "Updating repo for: ${NIXOS_CONFIG_DIR}"
-    cd ${NIXOS_CONFIG_DIR} && scmd git pull && cd -
+  if print_prompt "Use custom configuration: ${NIXOS_CONFIG_DIR}" "y"; then
+    if [ -d "${NIXOS_CONFIG_DIR}" ] \
+      && print_prompt "Update from ${GIT_REPO}" "n";
+    then
+      print_info "Updating repo for: ${NIXOS_CONFIG_DIR}"
+      cd ${NIXOS_CONFIG_DIR} && scmd git pull && cd -
+    else
+      print_info "Cloning ${GIT_REPO} into: ${NIXOS_CONFIG_DIR}"
+      scmd git clone ${GIT_REPO} ${NIXOS_CONFIG_DIR}
+    fi
   fi
-
-  sleep 1
 
   # Note: if a new hardware type (not in the git project),
   # then add the hardware.nix file as a new machine type
@@ -487,10 +502,137 @@ install() {
     else
       return $?
     fi
-
-    print_info "Changing ownership to 1000:wheel for: ${NIXOS_CONFIG_DIR}"
-    scmd chown -R 1000:wheel "${NIXOS_CONFIG_DIR}"
   fi
+
+  # If the passwd file for the installed system exists
+  pwd_file="/mnt/etc/passwd"
+
+  if [ -r "${pwd_file}" ]; then
+    # Get a list of login users, excluding root
+    users="$(grep -v '^.*nologin$' ${pwd_file} | cut -d ':' -f 1 | grep -v root)"
+
+    # Set the users to the current args, i.e. a quasi-array
+    set -- ${users}
+
+    user_name=
+    user_id=
+    user_gid=
+
+    print_info "Choose from the following users to own ${NIXOS_CONFIG_DIR}"
+
+    while true; do
+      printf "%s\n" ${users}
+      read -r -p "Choice (${1}): " user_name
+      # Trim one space, if any, from beginning and end
+      user_name="${user_name## }"
+      user_name="${user_name%% }"
+
+      # Use the first one, if not found
+      if [ -z "${user_name}" ]; then
+        print_warn "Using default ${1}"
+        user_name="${1}"
+      fi
+
+      user_id=$(awk -F':' -v u="${user_name}" '$1 ~ u { print $3 }' ${pwd_file})
+      user_gid=$(awk -F':' -v u="${user_name}" '$1 ~ u { print $4 }' ${pwd_file})
+
+      if [ -n "${user_id}" ] && [ -n "${user_gid}" ]; then
+        break
+      fi
+
+      print_warn "User name ${user_name} not found in ${pwd_file}"
+    done
+
+    if [ "${user_id}" -gt 0 ]; then
+      print_info "Changing ownership for \"${NIXOS_CONFIG_DIR}\" to ${user_id}:${user_gid}"
+      scmd chown -R ${user_id}:${user_gid} "${NIXOS_CONFIG_DIR}"
+    fi
+
+    unset -v user_id
+    unset -v user_gid
+
+    if [ -n "${users}" ] \
+      && print_prompt "Do you want to retrieve chezmoi dotfiles for users" "y";
+    then
+      user=
+
+      for user in ${users}; do
+        # TODO: should be more efficient to parse the user with awk once
+        #       and set as positional args, i.e. `set -- $user`
+        user_id=$(awk -F':' -v u="${user}" '$1 ~ u { print $3 }' ${pwd_file})
+        user_home=$(awk -F':' -v u="${user}" '$1 ~ u { print $6 }' ${pwd_file})
+        user_gid=$(awk -F':' -v u="${user}" '$1 ~ u { print $4 }' ${pwd_file})
+
+        # Will retrieve, from GitHub, the user's chezmoi managed dotfiles
+        if [ "${user_id}" -gt 0 ] \
+          && print_prompt "Retrieve chezmoi managed dotfiles for the user: ${user}" "y";
+        then
+          user_df_dir="${user_home}/dotfiles"
+          user_init_file="${user_home}/init-chezmoi.sh"
+          login_files="bash_login login profile zprofile"
+
+          print_info "Retrieving dotfiles for ${user} to: ${user_df_dir}"
+          scmd git clone https://github.com/${user}/dotfiles.git \
+            "/mnt${user_df_dir}" || return $?
+  
+          if print_prompt "Run dotfiles/install.sh at first login" "y"; then
+            f=
+
+            print_info "Updating login scripts..."
+            for f in ${login_files}; do
+              scmd tee -a "/mnt${user_home}/.${f}" > /dev/null <<EOF
+sh "${user_init_file}" && exec ${SHELL}
+EOF
+            done
+
+        	  unset -v f
+
+            print_info "Writing init file: ${user_init_file}"
+            scmd tee "/mnt${user_init_file}" >/dev/null <<EOF
+#!/bin/sh
+
+# Run the chezmoi install file
+if [ -f "${user_df_dir}/install.sh" ]; then
+  cd "${user_df_dir}" && sh install.sh && cd -
+fi
+
+# Remove reference from login files:
+for f in ${login_files}; do
+  if [ -w "${user_home}/.\${f}" ]; then
+    awk '!/\$0/' "${user_home}/.\${f}" > "/tmp/\${f}"
+    mv "/tmp/\${f}" "${user_home}/.\${f}" 
+  fi
+done
+
+# Remove this script
+rm -f \$0
+EOF
+          else
+            print_info "Remember to run <install.sh> in \${HOME}/dotfiles"
+          fi
+
+          # Update user home dir ownership
+          print_info "Changing ${user_home} ownership to ${user_id}:${user_gid}"
+          scmd chown -R ${user_id}:${user_gid} "/mnt${user_home}"
+    
+          unset -v user_home
+          unset -v user_id
+          unset -v user_gid
+          unset -v user_df_dir
+          unset -v user_init_file
+          unset -v login_files
+        fi
+      done
+
+      unset -v user
+    fi
+
+    unset -v user
+    unset -v users
+    unset -v user_name
+  fi
+
+  unset -v pwd_file
 
   #scmd umount -R /mnt || true
 
@@ -511,8 +653,6 @@ main() {
 
   # Opt into the experimental nix 'flakes' and 'nix-command' features
   export NIX_CONFIG="${NIX_CONFIG:-"experimental-features = nix-command flakes repl-flake"}"
-  # Change the default configuration file location
-  export NIXOS_CONFIG_DIR="/mnt/etc/nixos/config"
 
   install "${NAME}" "${DISK}" || exit $?
 }
