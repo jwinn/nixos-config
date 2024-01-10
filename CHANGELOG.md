@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [0.0.2] - 2024-01-09
+
+### Fixed
+
+- Fixed `CHANGELOG.md` URL for each version to point to this repo.
+
 ## [0.0.1] - 2024-01-09
 
 ### Added
@@ -13,8 +19,9 @@ and this project adheres to [Semantic Versioning].
 - Basic [NixOS] custom configuration with a single user and host (VM).
 - Installation script to run, process outlined in `README.md`.
 
-[unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.0.1...HEAD
-[0.0.1]: https://github.com/olivierlacan/keep-a-changelog/releases/tag/v0.0.1
+[unreleased]: https://github.com/jwinn/nixos-config/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/jwinn/nixos-config/releases/tag/v0.0.2
+[0.0.1]: https://github.com/jwinn/nixos-config/releases/tag/v0.0.1
 
 [Keep a Changelog]: https://keepachangelog.com/en/1.0.0/
 [NixOS]: https://nixos.org
