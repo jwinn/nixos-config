@@ -593,7 +593,7 @@ EOF
 
 # Run the chezmoi install file
 if [ -f "${user_df_dir}/install.sh" ]; then
-  cd "${user_df_dir}" && sh install.sh && cd -
+  cd "${user_df_dir}" > /dev/null && sh install.sh && cd - > /dev/null
 fi
 
 # Remove reference from login files:
