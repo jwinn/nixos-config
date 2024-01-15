@@ -40,6 +40,11 @@
     ];
   };
 
+  nixpkgs.config = {
+    allowUnfree = true;
+    #pulseaudio = true;
+  };
+
   # SSH server
   services.openssh = {
     enable = true;
@@ -71,9 +76,16 @@
     vim.defaultEditor = lib.mkDefault true;
   };
 
-  # VMware guest tools
-  virtualisation.vmware.guest.enable = true;
+  # fsck may fail at startup, so disable
+  #boot.initrd.checkJournalingFS = false;
 
+  # VMware guest tools
+  virtualisation.vmware.guest = {
+    enable = true;
+    # https://github.com/NixOS/nixpkgs/issues/258983#issuecomment-1747620207
+    headless = true;
+  };
+  
   # This option defines the first version of NixOS you have installed on this particular machine,
   # and is used to maintain compatibility with application data (e.g. databases) created on older NixOS versions.
   #

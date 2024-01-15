@@ -591,18 +591,19 @@ EOF
             scmd tee "/mnt${user_init_file}" >/dev/null <<EOF
 #!/bin/sh
 
+# Remove reference from login files:
+for f in ${login_files}; do
+  if [ -w "\${HOME}/.\${f}" ]; then
+    awk '!/\$0/' "\${HOME}/.\${f}" > "/tmp/\${f}"
+    mv "/tmp/\${f}" "\${HOME}/.\${f}"
+    [ -s "\${HOME}/.\${f}" ] && rm -f "\${HOME}/.\${f}"
+  fi
+done
+
 # Run the chezmoi install file
 if [ -f "${user_df_dir}/install.sh" ]; then
   cd "${user_df_dir}" > /dev/null && sh install.sh && cd - > /dev/null
 fi
-
-# Remove reference from login files:
-for f in ${login_files}; do
-  if [ -w "${user_home}/.\${f}" ]; then
-    awk '!/\$0/' "${user_home}/.\${f}" > "/tmp/\${f}"
-    mv "/tmp/\${f}" "${user_home}/.\${f}" 
-  fi
-done
 
 # Remove this script
 rm -f \$0
