@@ -2,16 +2,16 @@
 
 {
   users.users.jwinn = {
-    description = "Jon Winn";
-    isNormalUser = true;
     createHome = true;
+    description = "Jon Winn";
     initialPassword = "changeme";
+    isNormalUser = true;
     shell = pkgs.zsh;
     group = "users";
     extraGroups = [
-      "wheel"
       "docker"
       "networkmanager"
+      "wheel"
     ];
 
     packages = with pkgs; [
@@ -45,18 +45,10 @@
     enable = true;
     desktopManager = {
       xterm.enable = false;
-      #xfce = {
-      #  enable = true;
-      #  enableXfwm = false;
-      #  noDesktop = true;
-      #};
     };
-    # https://nixos.wiki/wiki/Using_X_without_a_Display_Manager
     displayManager = {
       defaultSession = "none+i3";
-      #defaultSession = "xfce+i3";
       lightdm.enable = true;
-      #startx.enable = true;
     };
     windowManager.i3 = {
       enable = true;

@@ -13,6 +13,10 @@
   # Use the systemd-boot EFI boot loader
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  # Use QEMU to run x86_64 binaries
+  boot.binfmt.emulatedSystems = [ "x86_64-linux" ];
+  # fsck may fail at startup, so disable
+  #boot.initrd.checkJournalingFS = false;
 
   networking.hostName = "vmware-aarch64";
   #time.timeZone = "Etc/UTC";
@@ -21,9 +25,11 @@
 
   # Nix command
   nix = {
-    settings = {
-      experimental-features = [ "nix-command" "flakes" "repl-flake" ];
-    };
+    extraOptions = ''
+      experimental-features = "nix-command" "flakes" "repl-flake"
+      keep-outputs = true
+      keep-derivations = true
+    '';
 
     gc = {
       automatic = true;
@@ -38,11 +44,21 @@
       "nixos-config=/etc/nixos/config/hosts/${config.networking.hostName}/default.nix"
       "/nix/var/nix/profiles/per-user/root/channels"
     ];
+
+    # Whilst not using flakes (yet?), still allow flake access
+    package = pkgs.nixUnstable;
+
+    settings = {
+      # Cachix public binary cache to use
+      substituters = [ "https://jwinn-nixos-config.cachix.org" ];
+      trusted-public-keys = [
+        "jwinn-nixos-config.cachix.org-1:+lzcoOcvOgUXoriRmJPdjW63cFu6bMYBU4//r7Q9zmc="
+      ];
+    };
   };
 
   nixpkgs.config = {
     allowUnfree = true;
-    #pulseaudio = true;
   };
 
   # SSH server
@@ -76,8 +92,11 @@
     vim.defaultEditor = lib.mkDefault true;
   };
 
-  # fsck may fail at startup, so disable
-  #boot.initrd.checkJournalingFS = false;
+  # Only allow users to be created through configuration
+  users.mutableUsers = false;
+
+  # Enable docker
+  virtualisation.docker.enable = true;
 
   # VMware guest tools
   virtualisation.vmware.guest = {

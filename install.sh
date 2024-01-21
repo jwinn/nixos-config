@@ -2,6 +2,11 @@
 
 set -eu
 
+# POSIX way to get script's dir:
+#   https://stackoverflow.com/a/29834779/12156188
+SCRIPT_DIR="$(cd -P -- "$(dirname -- "$(command -v -- "$0")")" && pwd -P)"
+SCRIPT_NAME="$(basename -- "${0}")"
+
 ######################################################################
 # Colors
 ######################################################################
@@ -155,13 +160,8 @@ get_disk() {
     return 1
   fi
 
-  if ! has_command nix-shell; then
-    print_error "<nix-shell> not found in: ${PATH}"
-    return 1
-  fi
-
   # TODO: prompt if more than 1?
-  disks=$(nix-shell -p jq --run "lsblk --json | jq -r '[.blockdevices[] | select(.type | ascii_downcase == \"disk\").name] | unique | join(\" \")'")
+  disks=$(lsblk --json | jq -r '[.blockdevices[] | select(.type | ascii_downcase == \"disk\").name] | unique | join(\" \")')
 
   # Ask for disk as input from choices
   # Set disk to first in list, if any
@@ -296,6 +296,8 @@ DISK=""
 GIT_REPO="${GIT_REPO:-"https://github.com/jwinn/nixos-config.git"}"
 NAME="${NAME:-"$(get_machine)-$(get_os_arch)"}"
 
+# Usage: usage
+# Description: prints this porgam's usage and options
 usage() {
   cat << EOF
 Usage: bootstrap [options] <command=[install]>
@@ -312,8 +314,12 @@ Options:
 EOF
 }
 
+# Usage: verify
+# Description: checks if requisite commands exist on the machine
+# Return: 0, if all requisite commands exist
+#         1, if a required command does not exist
 verify() {
-  if [ $(id -u) -ne 0 ] && ! has_command sudo; then
+  if [ "$(id -u)" -ne 0 ] && ! has_command sudo; then
     print_error "Non-root user and <sudo> not found in: ${PATH}"
     return 1
   fi
@@ -323,9 +329,18 @@ verify() {
     return 1
   fi
 
+  if ! has_command nix-env; then
+    print_critical "<nix> not found in: ${PATH}"
+    return 1
+  fi
+
   return 0
 }
 
+# Usage: verify_disk <disk>
+# Description: checks if the specified disk exists
+# Return: 0, if the disk exists
+#         1, if the disk does not exist
 verify_disk() {
   if [ ! -b "/dev/${1}" ]; then
     print_error "Cannot find the disk: ${1}"
@@ -335,7 +350,9 @@ verify_disk() {
   return 0
 }
 
-verify_pkgs() {
+# Usage: ensure_pkgs
+# Description: uses `nix-env` to install required packages
+ensure_pkgs() {
   pkgs="git jq"
   for pkg in ${pkgs}; do
     if ! has_command ${pkg}; then
@@ -350,6 +367,7 @@ verify_pkgs() {
   return 0
 }
 
+# Usage: partition_and_mount <disk>
 # TODO: change naive error checking
 partition_and_mount() {
   disk="${1}"
@@ -368,8 +386,7 @@ partition_and_mount() {
 
   print_info "Partitioning disk: ${disk}"
   if scmd parted /dev/${disk} -- mklabel gpt \
-    && scmd parted /dev/${disk} -- mkpart primary btrfs 512MB -8GB \
-    && scmd parted /dev/${disk} -- mkpart primary linux-swap -8GB 100% \
+    && scmd parted /dev/${disk} -- mkpart primary btrfs 512MB \
     && scmd parted /dev/${disk} -- mkpart ESP fat32 1MB 512MB \
     && scmd parted /dev/${disk} -- set 3 esp on \
   ; then
@@ -383,13 +400,11 @@ partition_and_mount() {
   print_info "Formatting partitions for: ${disk}"
   disk_json=$(lsblk -o +partlabel,parttypename --json | jq -c --arg disk "${disk}" '.blockdevices[] | select(.name | ascii_downcase == $disk)')
   nixos=$(echo "${disk_json}" | jq -r '.children[] | select(.parttypename == "Linux filesystem") | .name')
-  swap=$(echo "${disk_json}" | jq -r '.children[] | select(.parttypename == "Linux swap") | .name')
   boot=$(echo "${disk_json}" | jq -r '.children[] | select(.partlabel == "ESP") | .name')
 
   unset -v disk_json
 
   if scmd mkfs.btrfs -f -L nixos /dev/${nixos} \
-    && scmd mkswap -L swap /dev/${swap} \
     && scmd mkfs.fat -F 32 -n boot /dev/${boot} \
   ; then
 
@@ -408,7 +423,6 @@ partition_and_mount() {
   if scmd mount /dev/disk/by-label/nixos /mnt \
     && scmd mkdir -p /mnt/boot \
     && scmd mount /dev/disk/by-label/boot /mnt/boot \
-    && scmd swapon /dev/disk/by-label/swap \
   ; then
 
     print_success "Successfully mounted disk: ${disk}"
@@ -433,14 +447,9 @@ install() {
     return 1
   fi
 
-  if ! has_command nix-shell; then
-    print_error "<nix-shell> not found in: ${PATH}"
-    return 1
-  fi
-
   # TODO: naive approach to grepping config for installer import
   # may be different on NixOS VirtualBox, EC2, etc
-  # TBD: should the bootstrap just allow install, regardless of NIxOS state?
+  # TBD: should the bootstrap just allow install, regardless of NixOS state?
   if [ -z "cat /etc/nixos/configuration.nix | grep 'installer/cd-dvd'" ]; then
     print_error "Should only be run on a live ISO of NixOS"
     return 1
@@ -650,10 +659,7 @@ EOF
 
 main() {
   verify || exit $?
-  verify_pkgs || exit $?
-
-  # Opt into the experimental nix 'flakes' and 'nix-command' features
-  export NIX_CONFIG="${NIX_CONFIG:-"experimental-features = nix-command flakes repl-flake"}"
+  ensure_pkgs || exit $?
 
   install "${NAME}" "${DISK}" || exit $?
 }
