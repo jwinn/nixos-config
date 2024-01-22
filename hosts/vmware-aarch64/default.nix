@@ -26,7 +26,7 @@
   # Nix command
   nix = {
     extraOptions = ''
-      experimental-features = "nix-command" "flakes" "repl-flake"
+      experimental-features = nix-command flakes repl-flake
       keep-outputs = true
       keep-derivations = true
     '';
@@ -37,13 +37,6 @@
       # Every week, delete any generation older than 3 days
       options = "--delete-older-than 3d";
     };
-
-    # TODO: this feels incorrect, continue to ponder alternatives
-    nixPath = [
-      "nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos"
-      "nixos-config=/etc/nixos/config/hosts/${config.networking.hostName}/default.nix"
-      "/nix/var/nix/profiles/per-user/root/channels"
-    ];
 
     # Whilst not using flakes (yet?), still allow flake access
     package = pkgs.nixUnstable;
@@ -104,6 +97,9 @@
     # https://github.com/NixOS/nixpkgs/issues/258983#issuecomment-1747620207
     headless = true;
   };
+
+  # provide ZRAM as swap
+  zramSwap.enable = true;
   
   # This option defines the first version of NixOS you have installed on this particular machine,
   # and is used to maintain compatibility with application data (e.g. databases) created on older NixOS versions.

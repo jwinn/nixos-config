@@ -161,7 +161,7 @@ get_disk() {
   fi
 
   # TODO: prompt if more than 1?
-  disks=$(lsblk --json | jq -r '[.blockdevices[] | select(.type | ascii_downcase == \"disk\").name] | unique | join(\" \")')
+  disks=$(lsblk --json | jq -r '[.blockdevices[] | select(.type | ascii_downcase == "disk").name] | unique | join(" ")')
 
   # Ask for disk as input from choices
   # Set disk to first in list, if any
@@ -356,7 +356,7 @@ ensure_pkgs() {
   pkgs="git jq"
   for pkg in ${pkgs}; do
     if ! has_command ${pkg}; then
-      print_info "${pkg} not found, installing..."
+      print_warn "${pkg} not found, installing..."
       scmd nix-env --install --prebuilt-only --attr nixos.${pkg} || return $?
     fi
   done
@@ -386,9 +386,9 @@ partition_and_mount() {
 
   print_info "Partitioning disk: ${disk}"
   if scmd parted /dev/${disk} -- mklabel gpt \
-    && scmd parted /dev/${disk} -- mkpart primary btrfs 512MB \
+    && scmd parted /dev/${disk} -- mkpart primary btrfs 512MB 100% \
     && scmd parted /dev/${disk} -- mkpart ESP fat32 1MB 512MB \
-    && scmd parted /dev/${disk} -- set 3 esp on \
+    && scmd parted /dev/${disk} -- set 2 esp on \
   ; then
     print_success "Successfully partitioned disk: ${disk}"
   else
@@ -414,7 +414,6 @@ partition_and_mount() {
   fi
 
   unset -v nixos
-  unset -v swap
   unset -v boot
 
   sleep 1
@@ -443,7 +442,7 @@ install() {
 
   # Only run if on NixOS
   if ! has_command nixos-install; then
-    print_error "Cannot install on non-NixOS"
+    print_error "<nixos-install> not found; cannot install on non-NixOS"
     return 1
   fi
 
@@ -466,7 +465,7 @@ install() {
   verify_disk "${disk}" || return $?
 
   # TODO: determine if already partitioned, instead of prompting
-  if print_prompt "Parition and mount the disk \"${disk}\"" "y" \
+  if print_prompt "Parition and mount the disk: ${disk}" "y" \
     && ! partition_and_mount "${disk}";
   then
     print_error "Unable to partition and mount the disk"
@@ -475,39 +474,52 @@ install() {
 
   unset -v disk
 
-  # Change the default configuration file location
-  NIXOS_CONFIG_DIR="/mnt/etc/nixos/config"
+  # The default generated configuration
+  default_config_dir="/mnt/etc/nixos"
+  default_config="${default_config_dir}/configuration.nix"
 
-  if print_prompt "Use custom configuration: ${NIXOS_CONFIG_DIR}" "y"; then
-    if [ -d "${NIXOS_CONFIG_DIR}" ] \
-      && print_prompt "Update from ${GIT_REPO}" "n";
-    then
-      print_info "Updating repo for: ${NIXOS_CONFIG_DIR}"
-      cd ${NIXOS_CONFIG_DIR} && scmd git pull && cd -
-    else
-      print_info "Cloning ${GIT_REPO} into: ${NIXOS_CONFIG_DIR}"
-      scmd git clone ${GIT_REPO} ${NIXOS_CONFIG_DIR}
-    fi
-  fi
-
+  # Generate the default configuration
   # Note: if a new hardware type (not in the git project),
-  # then add the hardware.nix file as a new machine type
-  if [ ! -f "/mnt/etc/nixos/configuration.nix" ]; then
-    print_info "Generating basic configuration in '/mnt/etc/nixos'"
+  # then add the hardware.nix file as a new host type
+  if [ ! -f "${default_config}" ]; then
+    print_info "Generating basic configuration in: /mnt/etc/nixos"
     scmd nixos-generate-config --root /mnt
   fi
 
-  export NIXOS_CONFIG="${NIXOS_CONFIG_DIR}/hosts/${name}/default.nix"
+  # The custom configuration in nixos user home dir
+  config_dir="/home/nixos/nixos-config"
+  config="${config_dir}/hosts/${name}/default.nix"
 
-  if [ ! -f "${NIXOS_CONFIG}" ]; then
-    print_error "Unable to find config file: ${NIXOS_CONFIG}"
+  if print_prompt "Use custom configuration: ${config_dir}" "y"; then
+    # If the folder exists, either update, via git, or do nothing,
+    # allowing for local-based install
+    # Otherwise, clone from the GitHub repo
+    if [ -d "${config_dir}" ]; then
+      if print_prompt "Update from: ${GIT_REPO}" "n"; then
+        print_info "Updating repo for: ${config_dir}"
+        cd "${config_dir}" && scmd git pull && cd -
+      fi
+    else
+      print_info "Cloning ${GIT_REPO} into: ${config_dir}"
+      scmd git clone ${GIT_REPO} "${config_dir}"
+    fi
+
+    # Relative symlink the configuration to the default
+    scmd ln -srf "${config}" "${default_config}"
+  else
+    config_dir="${default_config_dir}"
+    config="${default_config}"
+  fi
+
+  if [ ! -f "${config}" ]; then
+    print_error "Unable to find config file: ${config}"
     return 1
   fi
 
-  if print_prompt "Would you like to install \"${name}\"" "y"; then
+  if print_prompt "Would you like to install: ${name}" "y"; then
     print_info "Installing NixOS using the host name: ${name}"
-    if scmd nixos-install --no-root-passwd -I "nixos-config=${NIXOS_CONFIG}"; then
-      print_success "Successfully installed NixOS using: ${NIXOS_CONFIG}"
+    if scmd nixos-install --no-root-passwd; then
+      print_success "Successfully installed NixOS using: ${config}"
     else
       return $?
     fi
@@ -526,8 +538,9 @@ install() {
     user_name=
     user_id=
     user_gid=
+    user_home=
 
-    print_info "Choose from the following users to own ${NIXOS_CONFIG_DIR}"
+    print_info "Choose from the following users to move '${config_dir}' to"
 
     while true; do
       printf "%s\n" ${users}
@@ -553,12 +566,30 @@ install() {
     done
 
     if [ "${user_id}" -gt 0 ]; then
-      print_info "Changing ownership for \"${NIXOS_CONFIG_DIR}\" to ${user_id}:${user_gid}"
-      scmd chown -R ${user_id}:${user_gid} "${NIXOS_CONFIG_DIR}"
+      user_home=$(awk -F':' -v u="${user_name}" '$1 ~ u { print $6 }' ${pwd_file})
+      user_home="/mnt${user_home}"
+      print_info "Moving '${config_dir}' to: ${user_home}/nixos-config"
+      scmd cp -rpf "${config_dir}" "${user_home}/nixos-config"
+
+      # Update the config locations
+      config_dir="${user_home}/nixos-config"
+      config="${config_dir}/hosts/${name}/default.nix"
+
+      print_info "Changing ownership for '${config_dir}' to: ${user_id}:${user_gid}"
+      scmd chown -R ${user_id}:${user_gid} "${config_dir}"
+
+      print_info "Linking '${config}' to: ${default_config}"
+      scmd ln -srf "${config}" "${default_config}"
     fi
+
+    unset -v default_config_dir
+    unset -v default_config
+    unset -v config_dir
+    unset -v config
 
     unset -v user_id
     unset -v user_gid
+    unset -v user_home
 
     if [ -n "${users}" ] \
       && print_prompt "Do you want to retrieve chezmoi dotfiles for users" "y";
@@ -581,7 +612,7 @@ install() {
           login_files="bash_login login profile zprofile"
 
           print_info "Retrieving dotfiles for ${user} to: ${user_df_dir}"
-          scmd git clone https://github.com/${user}/dotfiles.git \
+          scmd git clone "https://github.com/${user}/dotfiles.git" \
             "/mnt${user_df_dir}" || return $?
   
           if print_prompt "Run dotfiles/install.sh at first login" "y"; then
@@ -596,7 +627,7 @@ EOF
 
         	  unset -v f
 
-            print_info "Writing init file: ${user_init_file}"
+            print_info "Writing init file: /mnt${user_init_file}"
             scmd tee "/mnt${user_init_file}" >/dev/null <<EOF
 #!/bin/sh
 
@@ -652,6 +683,7 @@ EOF
     print_info "Feel free to make any changes in '/mnt' before <reboot>"
   fi
 
+  unset -v name
   unset -v source
 
   return $?

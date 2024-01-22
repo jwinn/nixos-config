@@ -51,7 +51,7 @@ Use either the [Online Install](#online-install) **or** [Local Install](#local-i
 
 ### Online Install
 
-1.  On a live Minimal ISO Image, run the following command:
+1.  On the live Minimal ISO Image, run the following command:
 
     ```sh
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/jwinn/nixos-config/main/install.sh)"
@@ -59,13 +59,13 @@ Use either the [Online Install](#online-install) **or** [Local Install](#local-i
 
 ### Local Install
 
-1.  On a live Minimal ISO Image, run the following to get the IP address:
+1.  On the live Minimal ISO Image, run the following to get the IP address:
 
     ```sh
     ip route get 1.1.1.1 | grep -oP 'src \K[^ ]+'
     ```
 
-1.  On a live Minimal ISO Image, update the default nixos user to have a password.
+1.  On the live Minimal ISO Image, update the default nixos user to have a password.
 
     ```sh
     passwd
@@ -77,17 +77,9 @@ Use either the [Online Install](#online-install) **or** [Local Install](#local-i
     scp -r nixos-config nixos@<ip_address>:~/
     ```
 
-1.  On a live Minimal ISO Image, copy/move `nixos-config` dir to `/mnt/etc/nixos/config`.
-
+1.  On the live Minimal ISO Image, run the install script.
     ```sh
-    sudo mkdir -p /mnt/etc/nixos
-    sudo mv ~nixos/nixos-config /mnt/etc/nixos/config
-    ```
-
-1.  On a live Minimal ISO Image, run the install script.
-    ```sh
-    cd /mnt/etc/nixos/config
-    sh install.sh
+    cd nixos-config && sh install.sh cd -
     ```
 
 [chezmoi]: https://www.chezmoi.io
