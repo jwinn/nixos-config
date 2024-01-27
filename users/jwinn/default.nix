@@ -15,8 +15,11 @@
     ];
 
     packages = with pkgs; [
+      firefox
       jq
+      kitty
       mosh
+      wezterm
     ];
 
     openssh.authorizedKeys.keyFiles = [
@@ -40,24 +43,13 @@
     zsh.enable = true;
   };
 
-  services.xserver = {
-    autorun = false;
-    enable = true;
-    desktopManager = {
-      xterm.enable = false;
-    };
-    displayManager = {
-      defaultSession = "none+i3";
-      lightdm.enable = true;
-    };
-    windowManager.i3 = {
-      enable = true;
-      extraPackages = with pkgs; [
-        dmenu # application launcher most people use
-        i3status # gives you the default i3 status bar
-        #i3lock # default i3 screen locker
-        #i3blocks # if you are planning on using i3blocks over i3status
-      ];
-    };
-  };
+  services.xserver.autorun = true;
+  #services.xserver.desktopManager.xfce = {
+  #  enable = true;
+  #  enableXfwm = false;
+  #  noDesktop = true;
+  #};
+  #services.xserver.displayManager = {
+  #  defaultSession = "xfce+i3";
+  #};
 }
