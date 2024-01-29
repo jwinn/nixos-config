@@ -325,12 +325,12 @@ verify() {
   fi
 
   if ! has_command nix; then
-    print_critical "<nix> not found in: ${PATH}"
+    print_error "<nix> not found in: ${PATH}"
     return 1
   fi
 
   if ! has_command nix-env; then
-    print_critical "<nix> not found in: ${PATH}"
+    print_error "<nix> not found in: ${PATH}"
     return 1
   fi
 
