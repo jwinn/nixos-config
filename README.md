@@ -36,7 +36,8 @@ Use either the [Online Install](#online-install) **or** [Local Install](#local-i
                 `https://github.com/<user>/dotfiles.git`.
             -   Asks if chezmoi install should be run at user's first login
                 -   If yes, then creates a script file and adds it to all login files for the user,
-                    i.e. `/home/<user>/.{bash_profile,login,profile,zprofile}`, to run [chezmoi install] file from `dotfiles` directory, i.e.
+                    i.e. `/home/<user>/.{bash_profile,login,profile,zprofile}`,
+                    to run [chezmoi install] file from `dotfiles` directory, i.e.
 
                     ```sh
                     sh "${HOME}/init-chezmoi.sh" && exec ${SHELL}
@@ -44,7 +45,8 @@ Use either the [Online Install](#online-install) **or** [Local Install](#local-i
 
                 -   The script file `init-chezmoi.sh` does the following:
                     -   Run `${HOME}/dotfiles/install.sh`.
-                    -   Removes the calls to `init-chezmoi.sh` from the login files,     i.e. `/home/<user>/.{bash_profile,login,profile,zprofile}`.
+                    -   Removes the calls to `init-chezmoi.sh` from the login files,
+                        i.e. `/home/<user>/.{bash_profile,login,profile,zprofile}`.
                     -   Removes itself, i.e. `${HOME}/init-chezmoi.sh`.
 
 1.  Asks if the system should reboot.
@@ -54,7 +56,7 @@ Use either the [Online Install](#online-install) **or** [Local Install](#local-i
 1.  On the live Minimal ISO Image, run the following command:
 
     ```sh
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/jwinn/nixos-config/main/install.sh)"
+    sh <(curl -fsSL https://jwinn.github.io/nixos-config/install.sh)
     ```
 
 ### Local Install
