@@ -56,7 +56,7 @@ Use either the [Online Install](#online-install) **or** [Local Install](#local-i
 1.  On the live Minimal ISO Image, run the following command:
 
     ```sh
-    sh <(curl -fsSL https://jwinn.github.io/nixos-config/install.sh)
+    sh <(curl -fsSL https://raw.githubusercontent.com/jwinn/nixos-config/main/install.sh)
     ```
 
 ### Local Install
