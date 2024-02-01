@@ -8,5 +8,7 @@
   ];
 
   networking.hostName = "qemu-aarch64";
-  networking.interfaces.enp0s1.useDHCP = true;
+  networking.interfaces.enp0s1.useDHCP = lib.mkDefault true;
+
+  services.qemuGuest.enable = true;
 }

@@ -15,10 +15,10 @@
     ];
 
     packages = with pkgs; [
-      firefox
       jq
       kitty
       mosh
+      rofi
       wezterm
     ];
 
@@ -29,6 +29,7 @@
 
   programs = {
     direnv.enable = true;
+    firefox.enable = true;
     git.enable = true;
     neovim = {
       enable = true;
@@ -52,4 +53,6 @@
   #services.xserver.displayManager = {
   #  defaultSession = "xfce+i3";
   #};
+
+  time.timeZone = "America/Los_Angeles";
 }

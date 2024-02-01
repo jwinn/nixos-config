@@ -22,11 +22,13 @@
   # System-wide programs
   environment.systemPackages = with pkgs; [
     cachix
+    feh
     gnumake
     killall
     lynx
     niv
     rxvt_unicode
+    vanilla-dmz # generic HiDPI cursor(s)
     vim
     wget
     xclip
@@ -48,8 +50,13 @@
     packages = with pkgs; [
       (nerdfonts.override {
         fonts = [
+          # TODO: 0xProto is not found?
+          #"0xProto"
+          "ComicShannsMono"
           "FiraCode"
           "JetBrainsMono"
+          "Hack"
+          "IntelOneMono"
           "OpenDyslexic"
           "SourceCodePro"
         ];
@@ -57,11 +64,11 @@
     ];
   };
 
-  i18n.defaultLocale = "en_US.UTF-8";
+  i18n.defaultLocale = lib.mkDefault "en_US.UTF-8";
 
   # The global flag is deprecated, so disable here to ensure
   # each interface is configured separately
-  networking.useDHCP = false;
+  networking.useDHCP = lib.mkDefault false;
 
   # Nix command
   nix = {
@@ -120,9 +127,12 @@
     };
   };
 
+  # X11 compositor
+  services.picom.enable = true;
+
   services.xserver = {
     autorun = lib.mkDefault false;
-    dpi = lib.mkDefault 220;
+    #dpi = lib.mkDefault 192;
     enable = lib.mkDefault true;
     layout = lib.mkDefault "us";
 
@@ -137,20 +147,12 @@
     };
 
     windowManager = {
-      i3 = {
-        enable = lib.mkDefault true;
-        #extraPackages = with pkgs; [
-        #  dmenu # application launcher most people use
-        #  i3status # gives you the default i3 status bar
-        #  #i3lock # default i3 screen locker
-        #  #i3blocks # if you are planning on using i3blocks over i3status
-        #];
-      };
+      i3.enable = lib.mkDefault true;
     };
   };
 
-  #time.timeZone = "Etc/UTC";
-  time.timeZone = "America/Los_Angeles";
+  time.timeZone = lib.mkDefault "Etc/UTC";
+  #time.timeZone = lib.mkDefault "America/Los_Angeles";
 
   # Only allow users to be created through configuration
   users.mutableUsers = false;
@@ -178,6 +180,4 @@
   #
   # For more information, see `man configuration.nix` or https://nixos.org/manual/nixos/stable/options#opt-system.stateVersion .
   system.stateVersion = "23.11"; # Did you read the comment?
-
 }
-
