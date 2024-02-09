@@ -7,7 +7,17 @@
 {
   imports = [
     ./hardware.nix
-    ../vm-shared.nix
+
+    ../../overrides/vmware-guest.nix
+
+    ../../modules/base.nix
+    ../../modules/fonts.nix
+    ../../modules/i3.nix
+    ../../modules/overlays.nix
+    ../../modules/packages.nix
+    ../../modules/systemd.nix
+    ../../modules/vm.nix
+
     ../../users/jwinn
   ];
 
@@ -18,16 +28,9 @@
   #boot.loader.systemd-boot.consoleMode = "0";
   boot.loader.systemd-boot.consoleMode = "auto";
 
-  environment.systemPackages = with pkgs; [
-    # Script to attempt VM auto-resizing support
-    # Taken from: https://github.com/mitchellh/nixos-config
-    (writeShellScriptBin "xrandr-auto" ''
-      xrandr --output Virtual-1 --auto
-    '')
-  ] ++ lib.optionals true [
-    # TODO: verify if this is required to get clipboard working with open-vm-tools
-    gtkmm3
-  ];
+  # Disable the default VMware guest module. Import the override to get this
+  # working on aarch64
+  disabledModules = [ "virtualisation/vmware-guest.nix" ];
 
   networking.hostName = "vmware-aarch64";
   # The interface created for apple silicon NIC
@@ -44,13 +47,11 @@
     };
   };
 
-  # Enable docker
-  virtualisation.docker.enable = true;
-
   # VMware guest tools
   virtualisation.vmware.guest = {
     enable = true;
     # https://github.com/NixOS/nixpkgs/issues/258983#issuecomment-1747620207
-    headless = true;
+    # corrected by using custom, for now, module
+    #headless = true;
   };
 }

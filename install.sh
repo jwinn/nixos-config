@@ -297,10 +297,10 @@ GIT_REPO="${GIT_REPO:-"https://github.com/jwinn/nixos-config.git"}"
 NAME="${NAME:-"$(get_machine)-$(get_os_arch)"}"
 
 # Usage: usage
-# Description: prints this porgam's usage and options
+# Description: prints this program's usage and options
 usage() {
   cat << EOF
-Usage: bootstrap [options] <command=[install]>
+Usage: ${SCRIPT_NAME} [options] <command=[install]>
 
 Manages initial NixOS basic operations
 

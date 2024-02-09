@@ -44,15 +44,5 @@
     zsh.enable = true;
   };
 
-  services.xserver.autorun = true;
-  #services.xserver.desktopManager.xfce = {
-  #  enable = true;
-  #  enableXfwm = false;
-  #  noDesktop = true;
-  #};
-  #services.xserver.displayManager = {
-  #  defaultSession = "xfce+i3";
-  #};
-
   time.timeZone = "America/Los_Angeles";
 }
