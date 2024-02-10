@@ -1,5 +1,10 @@
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
+let
+  isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
+  isLinux = pkgs.stdenv.hostPlatform.isLinux;
+  isWSL = pkgs.stdenv.hostPlatform.isWindows;
+in
 {
   users.users.jwinn = {
     createHome = true;
@@ -14,10 +19,24 @@
       "wheel"
     ];
 
+    # generally specific packages, should be in a project's folder,
+    # using direnv and shell.nix to configure
     packages = with pkgs; [
+      bat
+      fzf
+      gcc # used by treesitter
+      htop
       jq
       kitty
       mosh
+      nodejs # used by copilot.vim
+      ripgrep
+    ] ++ lib.optionals (isDarwin) [
+      # is setup on linux through systemPackages, but not nixos-darwin
+      cachix
+    ] ++ lib.optionals (isLinux && !isWSL) [
+      chromium
+      firefox
       rofi
       wezterm
     ];
@@ -29,7 +48,6 @@
 
   programs = {
     direnv.enable = true;
-    firefox.enable = true;
     git.enable = true;
     neovim = {
       enable = true;

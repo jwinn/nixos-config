@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
@@ -10,7 +10,6 @@ in
   # Global system packages
   environment.systemPackages = with pkgs; [
     cachix
-    gnumake
     killall
     niv
     vim
@@ -20,4 +19,15 @@ in
     xclip
   ] ++ lib.optionals (isDarwin) [
   ];
+
+  programs = {
+    git.enable = true;
+    gnupg.agent = lib.mkIf (isLinux) {
+      enable = true;
+      enableSSHSupport = true;
+    };
+    mtr.enable = true;
+    tmux.enable = true;
+    vim.defaultEditor = lib.mkDefault true;
+  };
 }
