@@ -30,7 +30,9 @@ in
       kitty
       mosh
       nodejs # used by copilot.vim
+      ranger
       ripgrep
+      unzip # used by mason
     ] ++ lib.optionals (isDarwin) [
       # is setup on linux through systemPackages, but not nixos-darwin
       cachix
