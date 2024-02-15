@@ -9,7 +9,7 @@ in
   users.users.jwinn = {
     createHome = true;
     description = "Jon Winn";
-    initialPassword = "changeme";
+    hashedPassword = "$y$j9T$O5nP5uCELjF73NNTNB5np.$FIJD/7aAawqdmUGojQvKVkf4R5IjaYFuuO4P1J2rqS0";
     isNormalUser = true;
     shell = pkgs.zsh;
     group = "users";
@@ -29,6 +29,7 @@ in
       jq
       kitty
       mosh
+      neofetch
       nodejs # used by copilot.vim
       ranger
       ripgrep

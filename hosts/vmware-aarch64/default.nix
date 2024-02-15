@@ -13,8 +13,10 @@
     ../../modules/base.nix
     ../../modules/fonts.nix
     ../../modules/i3.nix
+    ../../modules/opengl.nix
     ../../modules/overlays.nix
     ../../modules/packages.nix
+    ../../modules/startx.nix
     ../../modules/systemd.nix
     ../../modules/vm.nix
 

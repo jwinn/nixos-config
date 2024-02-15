@@ -68,6 +68,12 @@ in
     };
   };
 
+  system.autoUpgrade = {
+    channel = "https://nixos.org/channels/nixos-23.11";
+    #channel = "https://nixos.org/channels/nixos-unstable";
+    enable = false;
+  };
+
   time.timeZone = lib.mkDefault "Etc/UTC";
   #time.timeZone = lib.mkDefault "America/Los_Angeles";
 

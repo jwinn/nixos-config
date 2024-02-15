@@ -6,4 +6,6 @@
     efi.canTouchEfiVariables = true;
     systemd-boot.enable = true;
   };
+  boot.initrd.systemd.additionalUpstreamUnits = [ "systemd-vconsole-setup.service" ];
+  boot.initrd.systemd.storePaths = [ config.console.font ];
 }
