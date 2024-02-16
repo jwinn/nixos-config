@@ -23,7 +23,10 @@
 
     displayManager = {
       defaultSession = "none+i3";
-      lightdm.enable = true;
+      lightdm = {
+        background = ../assets/bg/technical-dark.png;
+        enable = true;
+      };
       sessionCommands = ''
         [ -r "$HOME/.xinitrc" ] && sh $HOME/.xinitrc
       '';

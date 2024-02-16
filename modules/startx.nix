@@ -9,5 +9,6 @@
   services.xserver = {
     autorun = lib.mkDefault false;
     displayManager.startx.enable = lib.mkDefault true;
+    libinput.enable = true;
   };
 }
