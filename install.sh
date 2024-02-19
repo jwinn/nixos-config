@@ -352,19 +352,6 @@ verify() {
   return 0
 }
 
-# Usage: verify_disk <disk>
-# Description: checks if the specified disk exists
-# Return: 0, if the disk exists
-#         1, if the disk does not exist
-verify_disk() {
-  if [ ! -b "/dev/${1}" ]; then
-    print_error "Cannot find the disk: ${1}"
-    return 1
-  fi
-
-  return 0
-}
-
 # Usage: ensure_pkgs
 # Description: uses `nix-env` to install required packages
 ensure_pkgs() {
@@ -398,36 +385,9 @@ install() {
     return 1
   fi
 
-  disko_config="${SCRIPT_DIR}/hosts/${name}/disko-config.nix"
-
-  if print_prompt "Create the disk devices in: ${disko_config}" "y"; then
-    print_info "Using disko config from: ${disko_config}"
-
-    # Run disko to partition and mount the disk
-    sudo nix --experimental-features "nix-command flakes" run \
-      github:nix-community/disko -- --mode disko "${disko_config}"
-
-    if [ "$?" -ne 0 ]; then
-      print_error "Unable to create disk devices with disko"
-      return 1
-    fi
-
-    print_success "Disk devices configured per: ${disko_config}"
-  fi
-
-  unset -v disko_config
-
   # The default generated configuration
   default_config_dir="/mnt/etc/nixos"
   default_config="${default_config_dir}/configuration.nix"
-
-  # Generate the default configuration
-  # Note: if a new hardware type (not in the git project),
-  # then add the hardware.nix file as a new host type
-  if [ ! -f "${default_config}" ]; then
-    print_info "Generating basic configuration in: /mnt/etc/nixos"
-    sudo nixos-generate-config --no-filesystems --root /mnt
-  fi
 
   # The custom configuration in nixos user home dir
   config_dir="/home/nixos/nixos-config"
@@ -446,9 +406,6 @@ install() {
       print_info "Cloning ${GIT_REPO} into: ${config_dir}"
       sudo git clone ${GIT_REPO} "${config_dir}"
     fi
-
-    # Relative symlink the configuration to the default
-    sudo ln -srf "${config}" "${default_config}"
   else
     config_dir="${default_config_dir}"
     config="${default_config}"
@@ -457,6 +414,38 @@ install() {
   if [ ! -f "${config}" ]; then
     print_error "Unable to find config file: ${config}"
     return 1
+  fi
+
+  disko_config="${config_dir}/hosts/${name}/disko-config.nix"
+
+  if print_prompt "Create the disk devices in: ${disko_config}" "y"; then
+    print_info "Using disko config from: ${disko_config}"
+
+    # Run disko to partition and mount the disk
+    sudo nix --experimental-features "nix-command flakes" run \
+      github:nix-community/disko -- --mode disko "${disko_config}"
+
+    if [ "$?" -ne 0 ]; then
+      print_error "Unable to create disk devices with disko"
+      return 1
+    fi
+
+    print_success "Disk devices configured per: ${disko_config}"
+  fi
+
+  unset -v disko_config
+
+  # Generate the default configuration
+  # Note: if a new hardware type (not in the git project),
+  # then add the hardware.nix file as a new host type
+  if [ ! -f "${default_config}" ]; then
+    print_info "Generating basic configuration in: /mnt/etc/nixos"
+    sudo nixos-generate-config --no-filesystems --root /mnt
+  fi
+
+  if [ "${config}" != "${default_config}" ]; then
+    # Relative symlink the configuration to the default
+    sudo ln -srf "${config}" "${default_config}"
   fi
 
   if print_prompt "Would you like to install: ${name}" "y"; then

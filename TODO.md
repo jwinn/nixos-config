@@ -7,13 +7,22 @@
 -  [ ] Detect OS and install based upon that, i.e. NixOS, macOS, WSL, etc.
 -  [ ] Remove unused/stale code for jq, git, get_disk, etc.
 
+### nix-darwin
+
+### NixOS-WSL
+
 ## Config
 
 -  [ ] Support nix-colors
+-  [ ] Support impermanence
 
 ### Home Manager
 
 -  [ ] Home manager support
+
+### nix-darwin
+
+### NixOS-WSL
 
 ### Secrets, keys, etc
 
