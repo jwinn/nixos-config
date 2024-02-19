@@ -111,26 +111,6 @@ has_command() {
   command -v "${1}" 1>/dev/null 2>&1
 }
 
-# Usage: scmd <command>
-# Description: uses `sudo` to run cmd with elevated privileges
-# TODO: very rudimentary/naive, needs improvement
-scmd() {
-  if [ ${EUID:-$(id -u)} -eq 0 ]; then
-    ${@}
-  fi
-
-  if ! has_command sudo; then
-    print_error "Non-root user and sudo not found in: ${PATH}"
-    return 1
-  fi
-
-  if sudo ${@}; then
-    return 0
-  else
-    return $?
-  fi
-}
-
 # Usage: str_contains <haystack> <needle>
 # Description: determins if the needle is in the haystack string
 str_contains() {
@@ -197,6 +177,43 @@ get_disk() {
 
   unset -v disks
   unset -v disk
+  return 0
+}
+
+# Usage: get_nic
+# Description: tries to determine the default network device to use
+# Outputs: the lcase nic name
+get_nic() {
+  nic=
+  n=
+
+  if has_command ip; then
+    nic="$(ip -o route show to default | awk '{print $5}')"
+  fi
+
+  printf "%s" "Please select the network device (NIC) to use [${nic}]: "
+
+  while true; do
+    read -r n
+
+    if [ -z "${n}" ]; then
+      n="${nic}"
+    fi
+
+    if ifconfig "${n}"; then
+      break
+    fi
+
+    print_error "${n} is not a network device, try again..."
+  done
+
+  nic="${n}"
+
+  unset -v n
+
+  NIC="$(str_lcase "${nic}")"
+
+  unset -v nic
   return 0
 }
 
@@ -292,7 +309,6 @@ get_machine() {
 #
 # Options
 #
-DISK=""
 GIT_REPO="${GIT_REPO:-"https://github.com/jwinn/nixos-config.git"}"
 NAME="${NAME:-"$(get_machine)-$(get_os_arch)"}"
 
@@ -306,7 +322,6 @@ Manages initial NixOS basic operations
 
 Options:
 
-  -d, --disk     Override the disk to partition and format [${DISK}]
   -h, --help     Display this help message
   -n, --name     Host name to configure/install for/to [${NAME}]
   -r, --repo     Git repo to pull configuration file(s) from [${GIT_REPO}]
@@ -357,7 +372,7 @@ ensure_pkgs() {
   for pkg in ${pkgs}; do
     if ! has_command ${pkg}; then
       print_warn "${pkg} not found, installing..."
-      scmd nix-env --install --prebuilt-only --attr nixos.${pkg} || return $?
+      sudo nix-env --install --prebuilt-only --attr nixos.${pkg} || return $?
     fi
   done
 
@@ -367,78 +382,8 @@ ensure_pkgs() {
   return 0
 }
 
-# Usage: partition_and_mount <disk>
-# TODO: change naive error checking
-partition_and_mount() {
-  disk="${1}"
-
-  print_info "If mounted, unmounting: ${disk}"
-  if scmd umount -R /mnt/boot 2>/dev/null || true \
-    && scmd umount -R /mnt 2>/dev/null || true \
-    && scmd umount /dev/${disk}* 2>/dev/null || true \
-  ; then
-    print_success "Successfully unmounted disk: ${disk}"
-  else
-    return $?
-  fi
-
-  sleep 1
-
-  print_info "Partitioning disk: ${disk}"
-  if scmd parted /dev/${disk} -- mklabel gpt \
-    && scmd parted /dev/${disk} -- mkpart primary btrfs 512MB 100% \
-    && scmd parted /dev/${disk} -- mkpart ESP fat32 1MB 512MB \
-    && scmd parted /dev/${disk} -- set 2 esp on \
-  ; then
-    print_success "Successfully partitioned disk: ${disk}"
-  else
-    return $?
-  fi
-
-  sleep 1
-
-  print_info "Formatting partitions for: ${disk}"
-  disk_json=$(lsblk -o +partlabel,parttypename --json | jq -c --arg disk "${disk}" '.blockdevices[] | select(.name | ascii_downcase == $disk)')
-  nixos=$(echo "${disk_json}" | jq -r '.children[] | select(.parttypename == "Linux filesystem") | .name')
-  boot=$(echo "${disk_json}" | jq -r '.children[] | select(.partlabel == "ESP") | .name')
-
-  unset -v disk_json
-
-  if scmd mkfs.btrfs -f -L nixos /dev/${nixos} \
-    && scmd mkfs.fat -F 32 -n boot /dev/${boot} \
-  ; then
-
-    print_success "Successfully formatted disk: ${disk}"
-  else
-    return $?
-  fi
-
-  unset -v nixos
-  unset -v boot
-
-  sleep 1
-
-  print_info "Mounting disks for: ${disk}"
-  if scmd mount /dev/disk/by-label/nixos /mnt \
-    && scmd mkdir -p /mnt/boot \
-    && scmd mount /dev/disk/by-label/boot /mnt/boot \
-  ; then
-
-    print_success "Successfully mounted disk: ${disk}"
-  else
-    return $?
-  fi
-
-  print_info "${disk} mounted to: '/mnt' and '/mnt/boot'"
-
-  unset -v disk
-
-  return 0
-}
-
 install() {
   name="${1:?}"
-  disk="${2}"
 
   # Only run if on NixOS
   if ! has_command nixos-install; then
@@ -448,31 +393,29 @@ install() {
 
   # TODO: naive approach to grepping config for installer import
   # may be different on NixOS VirtualBox, EC2, etc
-  # TBD: should the bootstrap just allow install, regardless of NixOS state?
   if [ -z "cat /etc/nixos/configuration.nix | grep 'installer/cd-dvd'" ]; then
     print_error "Should only be run on a live ISO of NixOS"
     return 1
   fi
 
-  if [ -z "${disk}" ]; then
-    if get_disk; then
-      disk="${DISK}"
-    else
-      return $?
+  disko_config="${SCRIPT_DIR}/hosts/${name}/disko-config.nix"
+
+  if print_prompt "Create the disk devices in: ${disko_config}" "y"; then
+    print_info "Using disko config from: ${disko_config}"
+
+    # Run disko to partition and mount the disk
+    sudo nix --experimental-features "nix-command flakes" run \
+      github:nix-community/disko -- --mode disko "${disko_config}"
+
+    if [ "$?" -ne 0 ]; then
+      print_error "Unable to create disk devices with disko"
+      return 1
     fi
+
+    print_success "Disk devices configured per: ${disko_config}"
   fi
 
-  verify_disk "${disk}" || return $?
-
-  # TODO: determine if already partitioned, instead of prompting
-  if print_prompt "Parition and mount the disk: ${disk}" "y" \
-    && ! partition_and_mount "${disk}";
-  then
-    print_error "Unable to partition and mount the disk"
-    return 1
-  fi
-
-  unset -v disk
+  unset -v disko_config
 
   # The default generated configuration
   default_config_dir="/mnt/etc/nixos"
@@ -483,7 +426,7 @@ install() {
   # then add the hardware.nix file as a new host type
   if [ ! -f "${default_config}" ]; then
     print_info "Generating basic configuration in: /mnt/etc/nixos"
-    scmd nixos-generate-config --root /mnt
+    sudo nixos-generate-config --no-filesystems --root /mnt
   fi
 
   # The custom configuration in nixos user home dir
@@ -497,15 +440,15 @@ install() {
     if [ -d "${config_dir}" ]; then
       if print_prompt "Update from: ${GIT_REPO}" "n"; then
         print_info "Updating repo for: ${config_dir}"
-        cd "${config_dir}" && scmd git pull && cd -
+        cd "${config_dir}" && sudo git pull && cd -
       fi
     else
       print_info "Cloning ${GIT_REPO} into: ${config_dir}"
-      scmd git clone ${GIT_REPO} "${config_dir}"
+      sudo git clone ${GIT_REPO} "${config_dir}"
     fi
 
     # Relative symlink the configuration to the default
-    scmd ln -srf "${config}" "${default_config}"
+    sudo ln -srf "${config}" "${default_config}"
   else
     config_dir="${default_config_dir}"
     config="${default_config}"
@@ -518,7 +461,7 @@ install() {
 
   if print_prompt "Would you like to install: ${name}" "y"; then
     print_info "Installing NixOS using the host name: ${name}"
-    if scmd nixos-install --no-root-passwd; then
+    if sudo nixos-install --no-root-passwd; then
       print_success "Successfully installed NixOS using: ${config}"
     else
       return $?
@@ -569,17 +512,17 @@ install() {
       user_home=$(awk -F':' -v u="${user_name}" '$1 ~ u { print $6 }' ${pwd_file})
       user_home="/mnt${user_home}"
       print_info "Moving '${config_dir}' to: ${user_home}/nixos-config"
-      scmd cp -rpf "${config_dir}" "${user_home}/nixos-config"
+      sudo cp -rpf "${config_dir}" "${user_home}/nixos-config"
 
       # Update the config locations
       config_dir="${user_home}/nixos-config"
       config="${config_dir}/hosts/${name}/default.nix"
 
       print_info "Changing ownership for '${config_dir}' to: ${user_id}:${user_gid}"
-      scmd chown -R ${user_id}:${user_gid} "${config_dir}"
+      sudo chown -R ${user_id}:${user_gid} "${config_dir}"
 
       print_info "Linking '${config}' to: ${default_config}"
-      scmd ln -srf "${config}" "${default_config}"
+      sudo ln -srf "${config}" "${default_config}"
     fi
 
     unset -v default_config_dir
@@ -612,15 +555,15 @@ install() {
           login_files="bash_login login profile zprofile"
 
           print_info "Retrieving dotfiles for ${user} to: ${user_df_dir}"
-          scmd git clone "https://github.com/${user}/dotfiles.git" \
+          sudo git clone "https://github.com/${user}/dotfiles.git" \
             "/mnt${user_df_dir}" || return $?
-  
+
           if print_prompt "Run dotfiles/install.sh at first login" "y"; then
             f=
 
             print_info "Updating login scripts..."
             for f in ${login_files}; do
-              scmd tee -a "/mnt${user_home}/.${f}" > /dev/null <<EOF
+              sudo tee -a "/mnt${user_home}/.${f}" > /dev/null <<EOF
 sh "${user_init_file}" && exec ${SHELL}
 EOF
             done
@@ -628,7 +571,7 @@ EOF
         	  unset -v f
 
             print_info "Writing init file: /mnt${user_init_file}"
-            scmd tee "/mnt${user_init_file}" >/dev/null <<EOF
+            sudo tee "/mnt${user_init_file}" >/dev/null <<EOF
 #!/bin/sh
 
 # Remove reference from login files:
@@ -654,8 +597,8 @@ EOF
 
           # Update user home dir ownership
           print_info "Changing ${user_home} ownership to ${user_id}:${user_gid}"
-          scmd chown -R ${user_id}:${user_gid} "/mnt${user_home}"
-    
+          sudo chown -R ${user_id}:${user_gid} "/mnt${user_home}"
+
           unset -v user_home
           unset -v user_id
           unset -v user_gid
@@ -675,10 +618,10 @@ EOF
 
   unset -v pwd_file
 
-  #scmd umount -R /mnt || true
+  #sudo umount -R /mnt || true
 
   if print_prompt "Do you want to reboot" "y"; then
-    scmd reboot
+    sudo reboot
   else
     print_info "Feel free to make any changes in '/mnt' before <reboot>"
   fi
@@ -693,21 +636,12 @@ main() {
   verify || exit $?
   ensure_pkgs || exit $?
 
-  install "${NAME}" "${DISK}" || exit $?
+  install "${NAME}" || exit $?
 }
 
 # Parse argv
 while [ $# -gt 0 ]; do
   case "${1}" in
-    -d | --disk)
-      DISK="${2}"
-      shift 2
-      ;;
-    -d=* | --disk=*)
-      DISK="${1#*=}"
-      shift 1
-      ;;
-
     -n | --name)
       NAME="${2}"
       shift 2
