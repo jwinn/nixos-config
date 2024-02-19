@@ -6,7 +6,7 @@ This project documents my journey through learning Nix(OS),
 and largely using NixOS as my sole development environment,
 via a VM, running aarch64 NixOS, on a macOS laptop (MacBook Pro).
 
-Ideally, I'm trying to keep flakes out of this project, see <sup>[1]</sup>.
+Ideally, I'm trying to keep flakes<sup>[1]</sup> out of this project.
 I will use third-party apps (e.g. [disko]) which may, themselves, use flakes, where applicable.
 
 -  [CHANGELOG](./CHANGELOG.md)
