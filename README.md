@@ -1,10 +1,19 @@
 # nixos-config
 
-My [NixOS] configuration.
+My "flake"-less [Nix] configuration for [NixOS], macOS, and WSL.
 
 This project documents my journey through learning Nix(OS),
 and largely using NixOS as my sole development environment,
 via a VM, running aarch64 NixOS, on a macOS laptop (MacBook Pro).
+
+Ideally, I'm trying to keep flakes out of this project, see <sup>[1]</sup>.
+I will use third-party apps (e.g. [disko]) which may, themselves, use flakes, where applicable.
+
+-  [CHANGELOG](./CHANGELOG.md)
+
+-  [Reference](./REFERENCE.md)
+
+-  [TODO](./TODO.md)
 
 ## Configuration
 
@@ -83,11 +92,14 @@ Use either the [Online Install](#online-install) **or** [Local Install](#local-i
     ```sh
     cd nixos-config && sh install.sh cd -
     ```
+[1]: https://discourse.nixos.org/t/experimental-does-not-mean-unstable-detsyss-perspective-on-nix-flakes/32703
 
 [chezmoi]: https://www.chezmoi.io
 [chezmoi install]: https://www.chezmoi.io/reference/commands/generate/
 [Custom Configuration]: https://github.com/jwinn/nixos-config
+[disko]: https://github.com/nix-community/disko
 [GitHub]: https://github.com
 [Minimal ISO Image]: https://nixos.org/download
+[Nix]: https://nix/dev
 [NixOS]: https://nixos.org/
 [NixOS Manual Installation]: https://nixos.org/manual/nixos/stable/index.html#sec-installation-manual

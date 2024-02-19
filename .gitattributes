@@ -1,0 +1,4 @@
+# may shift to sops
+secrets/** filter=git-crypt diff=git-crypt
+#**/secrets/*.yaml diff=sopsdiffer
+nix linguist-generated=true
