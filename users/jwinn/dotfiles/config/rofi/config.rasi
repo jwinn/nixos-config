@@ -1,0 +1,62 @@
+/**
+ * Default configuration settings
+ * Can be overridden in themes
+ */
+configuration {
+  combi-modes: [ window, drun, run ];
+  disable-history: true;
+  dpi: 0;
+  font: "ComicShannsMono Nerd Font 12";
+  max-history-size: 10;
+  modes: [ combi, window, drun, run, filebrowser, ssh, keys ];
+  show-icons: true;
+  terminal: "rofi-sensible-terminal";
+  window-format: "{w}  {c}  {t}";
+
+  combi {
+    //display-name: "";
+    display-name: "";
+  }
+
+  drun {
+    display-name: "";
+  }
+
+  filebrowser {
+    display-name: "󱧶";
+    //display-name: "";
+  }
+
+  keys {
+    display-name: "󰧺";
+  }
+
+  //run-command: "{cmd}";
+  run {
+    display-name: "";
+    //shell-command: "{terminal} -e {cmd}"; 
+    shell-command: "{terminal} -e $SHELL -ic \"{cmd} && read\"";
+  }
+
+  ssh {
+    display-name: "";
+  }
+
+  timeout {
+    action: "kb-cancel";
+    delay: 0;
+  }
+
+  window {
+    display-name: "";
+    prefer-icon-theme: true;
+  }
+
+  windowcd {
+    display-name: "";
+  }
+}
+
+//@theme "colors/jellybeans"
+@theme "colors/tokyonight/default"
+@import "layouts/two-col/default"

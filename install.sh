@@ -131,92 +131,6 @@ str_lcase() {
 # Environment
 ######################################################################
 
-# Usage: get_disk
-# Description: tries to determine the block device disk to use
-# Outputs: the lcase disk
-get_disk() {
-  if ! has_command lsblk; then
-    print_error "<lsblk> not found in: ${PATH}"
-    return 1
-  fi
-
-  # TODO: prompt if more than 1?
-  disks=$(lsblk --json | jq -r '[.blockdevices[] | select(.type | ascii_downcase == "disk").name] | unique | join(" ")')
-
-  # Ask for disk as input from choices
-  # Set disk to first in list, if any
-  disk=${disks}
-  # Allow user to choose, if more than one
-  if [ "${disk}" != "${disks}" ]; then
-    printf "%s\n\n" "Please choose from the avilable disks:"
-    printf "\t%s\n" ${disks}
-
-    dsk=
-    while true; do
-      printf "\ndisk [%s]: " "${disk}" >&2
-      read -r dsk
-
-      # Use default, if nothing entered
-      if [ -z "${dsk}" ]; then
-        dsk="${disk}"
-      fi
-
-      if [ -b /dev/${dsk} ]; then
-        break
-      fi
-
-      print_error "/dev/${dsk} is not a block device, try again..."
-    done
-
-    disk="${dsk}"
-
-    unset -v dsk
-  fi
-
-  DISK="$(str_lcase "${disk}")"
-
-  unset -v disks
-  unset -v disk
-  return 0
-}
-
-# Usage: get_nic
-# Description: tries to determine the default network device to use
-# Outputs: the lcase nic name
-get_nic() {
-  nic=
-  n=
-
-  if has_command ip; then
-    nic="$(ip -o route show to default | awk '{print $5}')"
-  fi
-
-  printf "%s" "Please select the network device (NIC) to use [${nic}]: "
-
-  while true; do
-    read -r n
-
-    if [ -z "${n}" ]; then
-      n="${nic}"
-    fi
-
-    if ifconfig "${n}"; then
-      break
-    fi
-
-    print_error "${n} is not a network device, try again..."
-  done
-
-  nic="${n}"
-
-  unset -v n
-
-  NIC="$(str_lcase "${nic}")"
-
-  unset -v nic
-  return 0
-}
-
 # Usage: get_os_arch
 # Description: gets and lcase the os architecture; normalizes
 # Outputs: the lcase os architecture
@@ -310,20 +224,20 @@ get_machine() {
 # Options
 #
 GIT_REPO="${GIT_REPO:-"https://github.com/jwinn/nixos-config.git"}"
-NAME="${NAME:-"$(get_machine)-$(get_os_arch)"}"
+MACHINE="$(get_machine)-$(get_os_arch)"
 
 # Usage: usage
 # Description: prints this program's usage and options
 usage() {
   cat << EOF
-Usage: ${SCRIPT_NAME} [options] <command=[install]>
+Usage: ${SCRIPT_NAME} [options]
 
 Manages initial NixOS basic operations
 
 Options:
 
   -h, --help     Display this help message
-  -n, --name     Host name to configure/install for/to [${NAME}]
+  -m, --machine  Host name to configure/install for/to [${MACHINE}]
   -r, --repo     Git repo to pull configuration file(s) from [${GIT_REPO}]
 
 EOF
@@ -355,7 +269,7 @@ verify() {
 # Usage: ensure_pkgs
 # Description: uses `nix-env` to install required packages
 ensure_pkgs() {
-  pkgs="git jq"
+  pkgs="git"
   for pkg in ${pkgs}; do
     if ! has_command ${pkg}; then
       print_warn "${pkg} not found, installing..."
@@ -369,8 +283,8 @@ ensure_pkgs() {
   return 0
 }
 
-install() {
-  name="${1:?}"
+install_nixos() {
+  machine="${1:?}"
 
   # Only run if on NixOS
   if ! has_command nixos-install; then
@@ -391,34 +305,73 @@ install() {
 
   # The custom configuration in nixos user home dir
   config_dir="/home/nixos/nixos-config"
-  config="${config_dir}/hosts/${name}/default.nix"
+  config="${config_dir}/default.nix"
 
-  if print_prompt "Use custom configuration: ${config_dir}" "y"; then
-    # If the folder exists, either update, via git, or do nothing,
-    # allowing for local-based install
-    # Otherwise, clone from the GitHub repo
-    if [ -d "${config_dir}" ]; then
-      if print_prompt "Update from: ${GIT_REPO}" "n"; then
-        print_info "Updating repo for: ${config_dir}"
-        cd "${config_dir}" && sudo git pull && cd -
-      fi
-    else
-      print_info "Cloning ${GIT_REPO} into: ${config_dir}"
-      sudo git clone ${GIT_REPO} "${config_dir}"
-    fi
-  else
-    config_dir="${default_config_dir}"
-    config="${default_config}"
+  # If the folder exists, either update, via git, or do nothing,
+  # allowing for local-based install
+  # Otherwise, clone from the GitHub repo
+  if [ ! -r "${config}" ]; then
+    print_warn "Config file not found: ${config}"
+    print_info "Cloning ${GIT_REPO} into: ${config_dir}"
+    sudo git clone ${GIT_REPO} "${config_dir}"
   fi
 
-  if [ ! -f "${config}" ]; then
+  if [ ! -r "${config}" ]; then
     print_error "Unable to find config file: ${config}"
     return 1
   fi
 
-  disko_config="${config_dir}/hosts/${name}/disko-config.nix"
+  if ! print_prompt "Configure for ${machine}" "y" \
+    || [ ! -d "${SCRIPT_DIR}/machines/${machine}" ];
+  then
+    machines="$(for m in ${SCRIPT_DIR}/machines/*/; \
+      do m="${m%*/}"; printf "%s " "${m##*/}"; done)"
+    machines="${machines%* }"
+    mach=
 
-  if print_prompt "Create the disk devices in: ${disko_config}" "y"; then
+    # if empty, set to first in "list"
+    if [ -z "${machine}" ]; then
+      machine=${machines}
+    fi
+
+    print_info "Choose from the following machines to configure"
+
+    # verify the machine configuration exists and write the default.nix file
+    while true; do
+      printf "%s\n" ${machines}
+      read -r -p "Choice (${machine}): " mach
+      # Trim one space, if any, from beginning and end
+      mach="${mach## }"
+      mach="${mach%% }"
+
+      # Use the first one, if not found
+      if [ -z "${mach}" ]; then
+        print_warn "Using default ${machine}"
+        break
+      fi
+
+      if [ -d "machines/${mach}" ]; then
+        machine="${mach}"
+        break
+      fi
+
+      print_warn "Machine ${machine} not found in: ${machines}"
+    done
+
+    unset -v mach
+    unset -v machines
+  fi
+
+  print_info "Generating <default.nix> from <default.nix.t> for: ${machine}"
+  cat default.nix.t | sed -e "s/%MACHINE%/${machine}/g" > default.nix
+  if [ "$?" -ne 0 ]; then
+    print_error "Unable to create <default.nix> file"
+    return 1
+  fi
+
+  if [ ! -f "${default_config}" ]; then
+    disko_config="${config_dir}/machines/${machine}/disko-config.nix"
+
     print_info "Using disko config from: ${disko_config}"
 
     # Run disko to partition and mount the disk
@@ -431,9 +384,9 @@ install() {
     fi
 
     print_success "Disk devices configured per: ${disko_config}"
-  fi
 
-  unset -v disko_config
+    unset -v disko_config
+  fi
 
   # Generate the default configuration
   # Note: if a new hardware type (not in the git project),
@@ -444,17 +397,16 @@ install() {
   fi
 
   if [ "${config}" != "${default_config}" ]; then
+    print_info "Creating symlink: ${default_config} -> ${config}"
     # Relative symlink the configuration to the default
     sudo ln -srf "${config}" "${default_config}"
   fi
 
-  if print_prompt "Would you like to install: ${name}" "y"; then
-    print_info "Installing NixOS using the host name: ${name}"
-    if sudo nixos-install --no-root-passwd; then
-      print_success "Successfully installed NixOS using: ${config}"
-    else
-      return $?
-    fi
+  print_info "Installing NixOS using the machine name: ${machine}"
+  if sudo nixos-install --no-root-passwd; then
+    print_success "Successfully installed NixOS using: ${config}"
+  else
+    return $?
   fi
 
   # If the passwd file for the installed system exists
@@ -505,7 +457,7 @@ install() {
 
       # Update the config locations
       config_dir="${user_home}/nixos-config"
-      config="${config_dir}/hosts/${name}/default.nix"
+      config="${config_dir}/default.nix"
 
       print_info "Changing ownership for '${config_dir}' to: ${user_id}:${user_gid}"
       sudo chown -R ${user_id}:${user_gid} "${config_dir}"
@@ -522,92 +474,10 @@ install() {
     unset -v user_id
     unset -v user_gid
     unset -v user_home
-
-    if [ -n "${users}" ] \
-      && print_prompt "Do you want to retrieve chezmoi dotfiles for users" "y";
-    then
-      user=
-
-      for user in ${users}; do
-        # TODO: should be more efficient to parse the user with awk once
-        #       and set as positional args, i.e. `set -- $user`
-        user_id=$(awk -F':' -v u="${user}" '$1 ~ u { print $3 }' ${pwd_file})
-        user_home=$(awk -F':' -v u="${user}" '$1 ~ u { print $6 }' ${pwd_file})
-        user_gid=$(awk -F':' -v u="${user}" '$1 ~ u { print $4 }' ${pwd_file})
-
-        # Will retrieve, from GitHub, the user's chezmoi managed dotfiles
-        if [ "${user_id}" -gt 0 ] \
-          && print_prompt "Retrieve chezmoi managed dotfiles for the user: ${user}" "y";
-        then
-          user_df_dir="${user_home}/dotfiles"
-          user_init_file="${user_home}/init-chezmoi.sh"
-          login_files="bash_login login profile zprofile"
-
-          print_info "Retrieving dotfiles for ${user} to: ${user_df_dir}"
-          sudo git clone "https://github.com/${user}/dotfiles.git" \
-            "/mnt${user_df_dir}" || return $?
-
-          if print_prompt "Run dotfiles/install.sh at first login" "y"; then
-            f=
-
-            print_info "Updating login scripts..."
-            for f in ${login_files}; do
-              sudo tee -a "/mnt${user_home}/.${f}" > /dev/null <<EOF
-sh "${user_init_file}" && exec ${SHELL}
-EOF
-            done
-
-        	  unset -v f
-
-            print_info "Writing init file: /mnt${user_init_file}"
-            sudo tee "/mnt${user_init_file}" >/dev/null <<EOF
-#!/bin/sh
-
-# Remove reference from login files:
-for f in ${login_files}; do
-  if [ -w "\${HOME}/.\${f}" ]; then
-    awk '!/\$0/' "\${HOME}/.\${f}" > "/tmp/\${f}"
-    mv "/tmp/\${f}" "\${HOME}/.\${f}"
-    [ -s "\${HOME}/.\${f}" ] && rm -f "\${HOME}/.\${f}"
-  fi
-done
-
-# Run the chezmoi install file
-if [ -f "${user_df_dir}/install.sh" ]; then
-  cd "${user_df_dir}" > /dev/null && sh install.sh && cd - > /dev/null
-fi
-
-# Remove this script
-rm -f \$0
-EOF
-          else
-            print_info "Remember to run <install.sh> in \${HOME}/dotfiles"
-          fi
-
-          # Update user home dir ownership
-          print_info "Changing ${user_home} ownership to ${user_id}:${user_gid}"
-          sudo chown -R ${user_id}:${user_gid} "/mnt${user_home}"
-
-          unset -v user_home
-          unset -v user_id
-          unset -v user_gid
-          unset -v user_df_dir
-          unset -v user_init_file
-          unset -v login_files
-        fi
-      done
-
-      unset -v user
-    fi
-
-    unset -v user
-    unset -v users
     unset -v user_name
   fi
 
   unset -v pwd_file
-
-  #sudo umount -R /mnt || true
 
   if print_prompt "Do you want to reboot" "y"; then
     sudo reboot
@@ -615,28 +485,27 @@ EOF
     print_info "Feel free to make any changes in '/mnt' before <reboot>"
   fi
 
-  unset -v name
-  unset -v source
+  unset -v machine
 
-  return $?
+  return 0
 }
 
 main() {
   verify || exit $?
   ensure_pkgs || exit $?
 
-  install "${NAME}" || exit $?
+  install_nixos "${MACHINE}" || exit $?
 }
 
 # Parse argv
 while [ $# -gt 0 ]; do
   case "${1}" in
-    -n | --name)
-      NAME="${2}"
+    -m | --machine)
+      MACHINE="${2}"
       shift 2
       ;;
-    -n=* | --name=*)
-      NAME="${1#*=}"
+    -m=* | --machine=*)
+      MACHINE="${1#*=}"
       shift 1
       ;;
 

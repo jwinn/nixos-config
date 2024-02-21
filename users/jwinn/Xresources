@@ -1,0 +1,174 @@
+! vim: ft=xdefaults
+!===========================================================================!
+! Colors
+!===========================================================================!
+
+!
+! TODO: includes are not working in NixOS, so inline colors
+!       may be related to how NixOS sources ~/.Xresources
+!
+
+!#include "Xresources.d/colors/hybrid"
+!#include "Xresources.d/colors/jellybeans"
+!#include "Xresources.d/colors/kanagawa"
+!#include "Xresources.d/colors/kanagawabones"
+!#include "Xresources.d/colors/kanagawa-dragon"
+!#include "Xresources.d/colors/kanagawa-lotus"
+!#include "Xresources.d/colors/nord"
+!#include "Xresources.d/colors/nord-light"
+!#include "Xresources.d/colors/nvim-dark"
+!#include "Xresources.d/colors/nvim-light"
+!#include "Xresources.d/colors/onehalf-dark"
+!#include "Xresources.d/colors/onehalf-light"
+!#include "Xresources.d/colors/tokyo-night"
+!#include "Xresources.d/colors/tokyo-night-day"
+!#include "Xresources.d/colors/tokyo-night-moon"
+!#include "Xresources.d/colors/tokyo-night-storm"
+
+!===========================================================================!
+! Jellybeans
+!---------------------------------------------------------------------------!
+! https://github.com/nanotech/jellybeans.vim
+!---------------------------------------------------------------------------!
+
+!0 Black    rgb(59,59,59)     #3b3b3b
+!1 Red      rgb(207,106,76)   #cf6a4c
+!2 Green    rgb(153,173,106)  #99ad6a
+!3 Yellow   rgb(216,173,76)   #d8ad4c
+!4 Blue     rgb(89,123,197)   #597bc5
+!5 Magenta  rgb(160,55,176)   #a037b0
+!6 Cyan     rgb(113,185,248)  #71b9f8
+!7 White    rgb(173,173,173)  #adadad
+
+#define CLR_ANSI_0 #3b3b3b
+#define CLR_ANSI_1 #cf6a4c
+#define CLR_ANSI_2 #99ad6a
+#define CLR_ANSI_3 #d8ad4c
+#define CLR_ANSI_4 #597bc5
+#define CLR_ANSI_5 #a037b0
+#define CLR_ANSI_6 #71b9f8
+#define CLR_ANSI_7 #adadad
+#define CLR_ANSI_8 #444444
+#define CLR_ANSI_9 #e27373
+#define CLR_ANSI_10 #94b979
+#define CLR_ANSI_11 #ffba7b
+#define CLR_ANSI_12 #97bedc
+#define CLR_ANSI_13 #e1c0fa
+#define CLR_ANSI_14 #00988e
+#define CLR_ANSI_15 #dedede
+
+#define CLR_BACKGROUND #151515
+#define CLR_BADGE #e27373
+#define CLR_BOLD #ffffff
+#define CLR_CURSOR #ffa560
+#define CLR_CURSOR_GUIDE #1c1c1c
+#define CLR_CURSOR_TEXT #ffffff
+#define CLR_FADE #ffba7b
+#define CLR_FOREGROUND #e8e8d3
+!#define CLR_ITALIC #
+#define CLR_LINK #e1c0fa
+!#define CLR_POINTER_BG #
+!#define CLR_POINTER_FG #
+#define CLR_SELECTED_TEXT #f4f4f4
+#define CLR_SELECTION #474e91
+#define CLR_TAB #b0b8c0
+!#define CLR_UNDERLINE #
+
+!#define FADING 35
+!#define OPACITY_BG 85
+
+! special
+!#ifdef OPACITY_BG
+!  *.background: [OPACITY_BG]CLR_BACKGROUND
+!#else
+!  *.background: CLR_BACKGROUND
+!#endif
+*.background: CLR_BACKGROUND
+*.foreground: CLR_FOREGROUND
+*.cursorColor: CLR_FOREGROUND
+
+! black
+*.color0: CLR_ANSI_0
+*.color8: CLR_ANSI_8
+
+! red
+*.color1: CLR_ANSI_1
+*.color9: CLR_ANSI_9
+
+! green
+*.color2: CLR_ANSI_2
+*.color10: CLR_ANSI_10
+
+! yellow
+*.color3: CLR_ANSI_3
+*.color11: CLR_ANSI_11
+
+! blue
+*.color4: CLR_ANSI_4
+*.color12: CLR_ANSI_12
+
+! magenta
+*.color5: CLR_ANSI_5
+*.color13: CLR_ANSI_13
+
+! cyan
+*.color6: CLR_ANSI_6
+*.color14: CLR_ANSI_14
+
+! white
+*.color7: CLR_ANSI_7
+*.color15: CLR_ANSI_15
+
+!===========================================================================!
+! Font
+!===========================================================================!
+
+!#include "Xresources.d/hidpi/font"
+
+Xft.antialias: 1
+Xft.autohint: 0
+! Resolution for Xft in dots per inch (e.g. 96)
+Xft.dpi: 192
+Xft.hinting: 1
+! What degree of hinting to use (hintnone, hintslight, hintmedium, or hintfull)
+Xft.hintstyle: hintslight
+!Xft.lcdfilter: lcddefault
+! Type of subpixel antialiasing (none, rgb, bgr, vrgb or vbgr)
+Xft.rgba: rgba
+
+!===========================================================================!
+! Cursor
+!===========================================================================!
+
+!#include "Xresources.d/hidpi/cursor"
+
+Xcursor.theme: Vanilla-DMZ
+XCursor.size: 32
+
+!===========================================================================!
+! rxvt-unicode
+!===========================================================================!
+
+!---------------------------------------------------------------------------!
+! rxvt-unicode perl extensions
+!---------------------------------------------------------------------------!
+
+URxvt.perl-ext-common: default,selection-to-clipboard,keyboard-select
+
+! keyboard-select: https://github.com/xyb3rt/urxvt-perls
+!
+! h/j/k/l:    Move cursor left/down/up/right (also with arrow keys)
+! g/G/0/^/$/H/M/L/f/F/;/,/w/W/b/B/e/E: More vi-like cursor movement keys
+! '/'/?:      Start forward/backward search
+! n/N:        Repeat last search, N: in reverse direction
+! Ctrl-f/b:   Scroll down/up one screen
+! Ctrl-d/u:   Scroll down/up half a screen
+! v/V/Ctrl-v: Toggle normal/linewise/blockwise selection
+! y/Return:   Copy selection to primary buffer, Return: quit afterwards
+! Y:          Copy selected lines to primary buffer or cursor line and quit
+! q/Escape:   Quit keyboard selection mode
+!---------------------------------------------------------------------------!
+URxvt.keysym.M-Escape: perl:keyboard-select:activate
+! overrides default Meta-s to allow selection in backward search mode
+URxvt.keysym.M-s: perl:keyboard-select:search
+URxvt.keyboard-select.clipboard: true

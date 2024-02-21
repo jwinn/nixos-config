@@ -4,44 +4,26 @@ let
   isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
   isLinux = pkgs.stdenv.hostPlatform.isLinux;
   isWSL = pkgs.stdenv.hostPlatform.isWindows;
+
+  shell = "zsh";
+  user = "jwinn";
+  userHome = "/home/${user}";
 in
 {
-  users.users.jwinn = {
-    createHome = true;
+  imports = [
+    ../../modules/home-manager.nix
+  ];
+
+  users.users.${user} = {
     description = "Jon Winn";
     hashedPassword = "$y$j9T$O5nP5uCELjF73NNTNB5np.$FIJD/7aAawqdmUGojQvKVkf4R5IjaYFuuO4P1J2rqS0";
     isNormalUser = true;
-    shell = pkgs.zsh;
     group = "users";
+    shell = pkgs.zsh;
     extraGroups = [
       "docker"
       "networkmanager"
       "wheel"
-    ];
-
-    # generally specific packages, should be in a project's folder,
-    # using direnv and shell.nix to configure
-    packages = with pkgs; [
-      bat
-      fzf
-      gcc # used by treesitter
-      htop
-      jq
-      kitty
-      mosh
-      neofetch
-      nodejs # used by copilot.vim
-      ranger
-      ripgrep
-      unzip # used by mason
-    ] ++ lib.optionals (isDarwin) [
-      # is setup on linux through systemPackages, but not nixos-darwin
-      cachix
-    ] ++ lib.optionals (isLinux && !isWSL) [
-      chromium
-      firefox
-      rofi
-      wezterm
     ];
 
     openssh.authorizedKeys.keyFiles = [
@@ -49,21 +31,13 @@ in
     ];
   };
 
-  programs = {
-    direnv.enable = true;
-    git.enable = true;
-    neovim = {
-      enable = true;
-      #viAlias = true;
-      #vimAlias = true;
-      #withNodeJs = true;
-      #withPython3 = true;
-      #withRuby = true;
-    };
-    tmux.enable = true;
-    # Enable the zsh shell
-    zsh.enable = true;
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    users.${user} = import ./home.nix;
   };
+
+  programs.zsh.enable = true;
 
   time.timeZone = "America/Los_Angeles";
 }
