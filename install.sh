@@ -323,9 +323,9 @@ install_nixos() {
   fi
 
   if ! print_prompt "Configure for ${machine}" "y" \
-    || [ ! -d "${SCRIPT_DIR}/machines/${machine}" ];
+    || [ ! -d "${config_dir}/machines/${machine}" ];
   then
-    machines="$(for m in ${SCRIPT_DIR}/machines/*/; \
+    machines="$(for m in ${config_dir}/machines/*/; \
       do m="${m%*/}"; printf "%s " "${m##*/}"; done)"
     machines="${machines%* }"
     mach=
@@ -364,9 +364,11 @@ install_nixos() {
   fi
 
   print_info "Generating <default.nix> from <default.nix.t> for: ${machine}"
-  cat "${config_template}" \
-    | sed -e "s/%MACHINE%/${machine}/g" \
-    > "${config}"
+  sudo sh -c \
+    "cat \"${config_template}\" \
+      | sed -e \"s/%MACHINE%/${machine}/g\" \
+      > \"${config}\"
+    "
   if [ "$?" -ne 0 ]; then
     print_error "Unable to create <default.nix> file"
     return 1
