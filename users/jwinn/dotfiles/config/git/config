@@ -1,0 +1,49 @@
+[color]
+  branch = auto
+  diff = auto
+  interactive = auto
+  status = auto
+  ui = auto
+
+[core]
+  editor = vim
+
+[diff]
+  tool = vimdiff
+
+[merge]
+  tool = vimdiff
+  guitool = opendiff
+
+[user]
+  name = Jon Winn
+  email = me@jonwinn.com
+#  signingkey = 15ED1D77E7A4EA76
+
+[commit]
+#  gpgsign = true
+
+[github]
+  user = jwinn
+
+[alias]
+  a = add
+  ca = commit -a
+  cam = commit -am
+  cm = commit -m
+  s = status
+  pom = push origin master
+  pog = push origin gh-pages
+  puom = pull origin master
+  puog = pull origin gh-pages
+  cob = checkout -b
+  co = checkout
+  fp = fetch --prune --all
+  l = log --oneline --decorate --graph
+  lall = log --oneline --decorate --graph --all
+  ls = log --oneline --decorate --graph --stat
+  lt = log --graph --decorate --pretty=format:'%C(yellow)%h%Creset%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)%an%Creset'
+
+[pull]
+  rebase = false
+

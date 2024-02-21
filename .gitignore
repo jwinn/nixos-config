@@ -1,4 +1,5 @@
 .direnv
+/default.nix
 result*
 
 # ---> Vim

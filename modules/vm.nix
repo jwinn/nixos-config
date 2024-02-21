@@ -8,6 +8,11 @@ in
   # fsck may fail at startup, so disable
   #boot.initrd.checkJournalingFS = false;
 
+  # reduce swappiness to 10 from default of 60
+  boot.kernel.sysctl = {
+    "vm.swappiness" = 10;
+  };
+
   environment.systemPackages = with pkgs; [
     # Script to attempt VM auto-resizing support
     # Taken from: https://github.com/mitchellh/nixos-config
@@ -21,5 +26,5 @@ in
   networking.useDHCP = lib.mkDefault false;
 
   # Don't require passwd for sudo
-  security.sudo.wheelNeedsPassword = false;
+  security.sudo.wheelNeedsPassword = lib.mkDefault false;
 }

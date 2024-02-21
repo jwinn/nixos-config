@@ -22,10 +22,6 @@ in
 
   programs = {
     git.enable = true;
-    gnupg.agent = lib.mkIf (isLinux) {
-      enable = true;
-      enableSSHSupport = true;
-    };
     mtr.enable = true;
     tmux.enable = true;
     vim.defaultEditor = lib.mkDefault true;
