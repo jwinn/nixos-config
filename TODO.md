@@ -18,7 +18,7 @@
 ## Config
 
 -   [ ] Support passed in arguments as module/config options
--   [ ] TBD: switch from composable modules to configurable options (opt-in)?
+-   [ ] TBD: switch from composable modules to configurable features (opt-in)?
 -   [ ] Support nix-colors
 -   [ ] Support impermanence
 
@@ -29,7 +29,7 @@
 
 ### Home Manager (HM)
 
--   [ ] Home Manager support
+-   [X] Basic support
 -   [ ] Integrate `dotfiles` into HM, where applicable,
         removing `home.file` references
 -   [ ] Determine why compiling from source on aarch64, led to an out of

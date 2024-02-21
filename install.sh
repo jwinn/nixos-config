@@ -306,18 +306,19 @@ install_nixos() {
   # The custom configuration in nixos user home dir
   config_dir="/home/nixos/nixos-config"
   config="${config_dir}/default.nix"
+  config_template="${config}.t"
 
   # If the folder exists, either update, via git, or do nothing,
   # allowing for local-based install
   # Otherwise, clone from the GitHub repo
-  if [ ! -r "${config}" ]; then
-    print_warn "Config file not found: ${config}"
+  if [ ! -r "${config_template}" ]; then
+    print_warn "Config file not found: ${config_template}"
     print_info "Cloning ${GIT_REPO} into: ${config_dir}"
     sudo git clone ${GIT_REPO} "${config_dir}"
   fi
 
-  if [ ! -r "${config}" ]; then
-    print_error "Unable to find config file: ${config}"
+  if [ ! -r "${config_template}" ]; then
+    print_error "Unable to find config file: ${config_template}"
     return 1
   fi
 
@@ -363,11 +364,15 @@ install_nixos() {
   fi
 
   print_info "Generating <default.nix> from <default.nix.t> for: ${machine}"
-  cat default.nix.t | sed -e "s/%MACHINE%/${machine}/g" > default.nix
+  cat "${config_template}" \
+    | sed -e "s/%MACHINE%/${machine}/g" \
+    > "${config}"
   if [ "$?" -ne 0 ]; then
     print_error "Unable to create <default.nix> file"
     return 1
   fi
+
+  unset -v config_template
 
   if [ ! -f "${default_config}" ]; then
     disko_config="${config_dir}/machines/${machine}/disko-config.nix"
