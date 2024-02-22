@@ -5,11 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
-## [unreleased]
+## [0.2.0] - 2024-02-21
 
 ### Added
 
--   Home Manager (HM) module-based NixOS configuration
+-   Home Manager (HM) module-based NixOS configuration.
+-   `modules/home-manager.nix` which fetches the HM tarball and imports it.
+-   `users/jwinn/dotfiles` of prior `chezmoi` files,
+    not (yet) in the nix config.
+-   HM-specific configuration in `users/jwinn`.
+-   `default.nix.t` "template" file to change the machine name at install time.
+-   auto-detection/selection of available machines in `install.sh`.
+
+### Changed
+
+-   Updated `TODO.md` with current task completion.
+
+### Removed
+
+-   Unused/deprecated functionality from `install.sh`.
+-   Somewhat excessive prompting in `install.sh`.
 
 ## [0.1.0] - 2024-02-18
 
@@ -57,7 +72,8 @@ and this project adheres to [Semantic Versioning].
 -   Basic [NixOS] custom configuration with a single user and host (VM).
 -   Installation script to run, process outlined in `README.md`.
 
-[unreleased]: https://github.com/jwinn/nixos-config/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/jwinn/nixos-config/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/jwinn/nixos-config/releases/tag/v0.2.0
 [0.1.0]: https://github.com/jwinn/nixos-config/releases/tag/v0.1.0
 [0.0.2]: https://github.com/jwinn/nixos-config/releases/tag/v0.0.2
 [0.0.1]: https://github.com/jwinn/nixos-config/releases/tag/v0.0.1

@@ -1,11 +1,11 @@
 ## Install
 
 -   [X] Basic disko support
--   [ ] Remove chezmoi and custom pieces, when home manager is fully supported
+-   [X] Remove chezmoi and custom pieces, when home manager is fully supported
 -   [ ] Provide config for install and a description for what will happen
--   [ ] Prompt for host name (config entry), with auto-detected as default?
+-   [X] Prompt for host name (config entry), with auto-detected as default?
 -   [ ] Detect OS and install based upon that, i.e. NixOS, macOS, WSL, etc.
--   [ ] Remove unused/stale code for jq, git, get_disk, etc.
+-   [X] Remove unused/stale code for jq, get_disk, etc.
 
 ### nix-darwin
 
